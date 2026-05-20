@@ -1,0 +1,101 @@
+.studio-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    /* 헤더 제외 높이 꽉 채움 */
+    width: 100%;
+    background-color: #1e1e24;
+    color: #fff;
+    overflow: hidden;
+    /* 전체 스크롤 방지 */
+}
+
+/* 스튜디오 상단 전용 네비게이션 */
+.studio-nav {
+    display: flex;
+    background-color: #2b2b36;
+    border-bottom: 2px solid #3f3f4e;
+    padding: 0 20px;
+    gap: 10px;
+}
+
+.studio-nav-btn {
+    background: none;
+    border: none;
+    color: #888;
+    padding: 15px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.studio-nav-btn:hover {
+    color: #ffe600;
+}
+
+.studio-nav-btn.active {
+    color: #ffe600;
+    border-bottom: 3px solid #ffe600;
+}
+
+/* 메인 작업 영역 (좌측 폼 + 우측 테스터) */
+.studio-work-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.studio-form-scroll {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* 샌드박스 테스터 (우측 고정) */
+.sandbox-tester {
+    width: 350px;
+    background-color: #1a1a1f;
+    border-left: 2px solid #3f3f4e;
+    display: flex;
+    flex-direction: column;
+}
+
+.sandbox-header {
+    padding: 15px;
+    background-color: #2b2b36;
+    border-bottom: 1px solid #3f3f4e;
+    font-weight: bold;
+    color: #ffe600;
+    text-align: center;
+}
+
+/* 탭 내부 스타일들 */
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.prologue-card,
+.keyword-card {
+    background-color: #2b2b36;
+    border: 1px solid #3f3f4e;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.priority-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ffe600;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}

@@ -1,0 +1,54 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #1e1e24;
+    border-bottom: 1px solid #3f3f4e;
+    color: white;
+    height: 60px;
+    flex-shrink: 0;
+    /* 화면 줄어도 헤더 안 찌그러지게 고정 */
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-buttons button {
+    background-color: #2b2b36;
+    color: white;
+    border: 1px solid #3f3f4e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.nav-buttons button:hover {
+    background-color: #3f3f4e;
+}
+
+.nav-buttons .home-btn {
+    background-color: #ffe600;
+    color: black;
+    border: none;
+}
+
+.nav-buttons .home-btn:hover {
+    background-color: #e6cf00;
+}
+
+.header-title {
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    color: #ffe600;
+}
+
+.header-right {
+    width: 200px;
+    /* 좌우 밸런스 맞추기용 빈 공간 */
+}

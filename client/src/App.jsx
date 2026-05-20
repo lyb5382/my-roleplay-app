@@ -1,122 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import ChatRoom from './pages/ChatRoom';
+import CreatorStudio from './pages/CreatorStudio';
+import HomeLobby from './pages/HomeLobby'; // 💡 새로 만들 로비 화면
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  // 화면 모드 제어: 'home' (메인) | 'chat' (채팅방) | 'creator' (제작자)
+  const [currentView, setCurrentView] = useState('home');
+
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    const saved = localStorage.getItem('activeSessionId');
+    // 저장된 방이 있으면 시작부터 채팅방 띄워줌
+    if (saved) setCurrentView('chat');
+    return saved || null;
+  });
+
+  // 💬 사이드바에서 과거 채팅방 클릭했을 때
+  const handleSelectSession = (id) => {
+    setCurrentSessionId(id);
+    localStorage.setItem('activeSessionId', id);
+    setCurrentView('chat'); // 채팅방 화면으로 전환
+  };
+
+  // 🏠 헤더에서 '메인으로' 버튼 눌렀을 때
+  const handleGoHome = () => {
+    setCurrentView('home'); // 홈 화면으로 전환
+    setCurrentSessionId(null);
+    localStorage.removeItem('activeSessionId');
+  };
+
+  // 🛠️ 헤더에서 '제작자 모드' 버튼 눌렀을 때
+  const handleGoCreator = () => {
+    setCurrentView('creator'); // 스튜디오로 전환
+    setCurrentSessionId(null); // 방 선택 해제
+    localStorage.removeItem('activeSessionId');
+  };
+
+  // 💡 메인 화면(홈)에서 특정 캐릭터 카드 누르고 '새 채팅 시작' 했을 때
+  const handleStartNewChat = (newSessionId) => {
+    setCurrentSessionId(newSessionId);
+    localStorage.setItem('activeSessionId', newSessionId);
+    setCurrentView('chat');
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-layout">
+      {/* 1. 맨 위 헤더 (제작자 모드 진입 함수도 넘겨줌) */}
+      <Header onGoHome={handleGoHome} onGoCreator={handleGoCreator} />
 
-      <div className="ticks"></div>
+      {/* 2. 아래쪽 본문 (사이드바 + 메인 컨텐츠) */}
+      <div className="main-body">
+        {/* 사이드바는 항상 떠있음 */}
+        <Sidebar
+          onSelectSession={handleSelectSession}
+          activeSessionId={currentSessionId}
+        />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        {/* 화면 상태(currentView)에 따라 컴포넌트 갈아끼우기 */}
+        <div className="main-content">
+          {currentView === 'home' && <HomeLobby onStartChat={handleStartNewChat} />}
+          {currentView === 'chat' && <ChatRoom sessionId={currentSessionId} />}
+          {currentView === 'creator' && <CreatorStudio />}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;

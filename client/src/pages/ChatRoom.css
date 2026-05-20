@@ -1,0 +1,360 @@
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #1e1e24;
+    color: #fff;
+    font-family: 'Pretendard', sans-serif;
+    overflow: hidden;
+}
+
+.chat-header {
+    padding: 20px;
+    color: white;
+    background-color: #2b2b36;
+    z-index: 10;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #3f3f4e;
+    flex-shrink: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+/* 유저 채팅 바블 (오른쪽) */
+.bubble.user {
+    align-self: flex-end;
+    background-color: #ffe600;
+    /* 카톡 노란색 감성 */
+    color: #000;
+    border-bottom-right-radius: 2px;
+}
+
+/* AI 채팅 바블 (왼쪽) */
+.bubble.assistant {
+    align-self: flex-start;
+    background-color: #3f3f4e;
+    color: #fff;
+    border-bottom-left-radius: 2px;
+}
+
+.chat-input-area {
+    display: flex;
+    padding: 15px;
+    background-color: #2b2b36;
+    border-top: 1px solid #3f3f4e;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    background-color: #1e1e24;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.chat-input-area button {
+    margin-left: 10px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 8px;
+    background-color: #ffe600;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.chat-input-area button:hover {
+    opacity: 0.8;
+}
+
+/* 메시지 겉포장지 (말풍선 + 수정버튼 가로 배치용) */
+.bubble-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+/* 유저쪽은 수정 버튼이 왼쪽에 오게 */
+.bubble-wrapper.user {
+    flex-direction: row-reverse;
+}
+
+/* 하단 입력창에 있던 리롤 버튼 숨기기 (이제 안 씀) */
+.reroll-btn {
+    display: none !important;
+}
+
+/* 말풍선 옆에 뜨는 액션 버튼 그룹 (🎲 ✏️ 🗑️) */
+.msg-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding-bottom: 5px;
+}
+
+.bubble-wrapper:hover .msg-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: transparent;
+    color: #888;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffe600;
+}
+
+/* 스와이프(좌우 넘기기) 컨트롤 UI */
+.swipe-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: #aaa;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 5px;
+}
+
+.swipe-btn {
+    background: none;
+    border: none;
+    color: #ffe600;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 2px 8px;
+}
+
+.swipe-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* 말풍선에 마우스 올리면 수정 버튼 스르륵 나타남 */
+.bubble-wrapper:hover .edit-btn {
+    opacity: 1;
+}
+
+.edit-btn:hover {
+    color: #ffe600;
+    font-weight: bold;
+}
+
+/* 수정 모드일 때 뜨는 텍스트 입력창 */
+.edit-textarea {
+    width: 100%;
+    min-width: 250px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #fff;
+    border: 1px solid #ffe600;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    /* 위아래로만 늘릴 수 있게 */
+    outline: none;
+}
+
+/* 저장/취소 버튼 구역 */
+.edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.edit-actions button {
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.save-btn {
+    background-color: #ffe600;
+    color: #000;
+}
+
+.cancel-btn {
+    background-color: #3f3f4e;
+    color: #fff;
+}
+
+.reroll-btn {
+    background-color: #3f3f4e !important;
+    color: #fff !important;
+    margin-left: 5px;
+    font-size: 1.2rem;
+    padding: 0 15px !important;
+}
+
+.reroll-btn:hover {
+    background-color: #555566 !important;
+}
+
+/* 채팅창 내부를 다시 좌우로 쪼개기용 래퍼 */
+.chat-body-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.chat-main-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* 오른쪽: 슬라이더 & 페르소나 튀어나오는 세팅 사이드바 */
+.chat-settings-sidebar {
+    width: 250px;
+    background-color: #252530;
+    border-left: 1px solid #3f3f4e;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 25px;
+}
+
+.setting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.setting-section label {
+    color: #ffe600;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.setting-section input[type="range"] {
+    accent-color: #ffe600;
+    cursor: pointer;
+}
+
+.setting-value {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+/* 페르소나 선택 콤보박스 디자인 */
+.persona-select {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e1e24;
+    color: white;
+    border: 1px solid #3f3f4e;
+    border-radius: 6px;
+    outline: none;
+    font-family: inherit;
+}
+
+/* 헤더에 점 3개 메뉴 버튼 */
+.header-menu-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.header-menu-btn:hover {
+    color: #ffe600;
+}
+
+/* 페르소나 선택 콤보박스랑 버튼 정렬용 */
+.persona-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.persona-btn-row {
+    display: flex;
+    gap: 5px;
+}
+
+.persona-mini-btn {
+    flex: 1;
+    padding: 6px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.persona-mini-btn.edit {
+    background-color: #3f3f4e;
+    color: white;
+}
+
+.persona-mini-btn.delete {
+    background-color: #ff4d4d;
+    color: white;
+}
+
+/* 페르소나 수정 폼 구역 */
+.persona-edit-form {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #3f3f4e;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.persona-edit-form input,
+.persona-edit-form textarea {
+    width: 100%;
+    padding: 8px;
+    background-color: #1e1e24;
+    color: white;
+    border: 1px solid #3f3f4e;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    outline: none;
+}

@@ -1,0 +1,335 @@
+const express = require('express');
+const router = express.Router();
+const ChatSession = require('../models/ChatSession');
+const axios = require('axios');
+
+// 새 채팅방(세션) 생성
+router.post('/start', async (req, res) => {
+    try {
+        const { characterId, personaId } = req.body;
+
+        if (!characterId || !personaId) {
+            return res.status(400).json({ success: false, error: '캐릭터 ID랑 페르소나 ID 둘 다 내놔' });
+        }
+
+        const newSession = new ChatSession({
+            characterId,
+            personaId,
+            messages: [] // 처음엔 대화 내역 텅 비어있음
+        });
+
+        await newSession.save();
+        console.log(`🔥 새 채팅방 오픈 완료! (세션 ID: ${newSession._id})`);
+
+        res.status(201).json({ success: true, sessionId: newSession._id });
+    } catch (error) {
+        console.error('❌ 채팅방 생성 중 좆됨:', error);
+        res.status(500).json({ success: false, error: '채팅방 못 팜' });
+    }
+});
+
+// 💬 실전 채팅 치기 (메시지 전송 -> AI 응답 -> DB 저장)
+router.post('/:sessionId/chat', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        // 🚨 [수정됨] 프론트에서 넘어온 온도랑 토큰 길이 확실하게 뽑아오기!
+        const { message, temperature = 0.9, maxTokens = 1000 } = req.body;
+
+        if (!message) return res.status(400).json({ success: false, error: '야 채팅을 쳐야 대답을 하지' });
+
+        const session = await ChatSession.findById(sessionId)
+            .populate('characterId')
+            .populate('personaId');
+
+        if (!session) return res.status(404).json({ success: false, error: '채팅방이 없는데?' });
+
+        const character = session.characterId;
+        const persona = session.personaId;
+
+        const systemContent = `
+        ${character.systemPrompt}
+        ${character.guideline ? '\n[절대 규칙]: ' + character.guideline : ''}
+        
+        [현재 상대하는 유저 정보]
+        이름: ${persona.name}
+        설정: ${persona.description}
+  
+        ${session.memorySummary ? '\n[이전 대화 요약]: ' + session.memorySummary : ''}
+      `;
+
+        const messagesForAI = [
+            { role: 'system', content: systemContent },
+            ...session.messages.map(msg => ({ role: msg.role, content: msg.content })),
+            { role: 'user', content: message }
+        ];
+
+        console.log('🤖 뇌 풀가동 중... (턴 수:', session.turnCount + 1, ')');
+
+        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+            model: 'qwen/qwen-2.5-72b-instruct',
+            messages: messagesForAI,
+            temperature: Math.max(0.01, Number(temperature)),
+            max_tokens: Math.min(4000, Number(maxTokens)),
+            top_p: 0.9,
+            repetition_penalty: 1.1
+        }, {
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'HTTP-Referer': 'http://localhost:5000',
+                'X-Title': 'RoleplayApp'
+            }
+        });
+
+        // 🚨 [신규] 오픈라우터가 에러 뱉었을 때 백엔드 터지는 거 방지하는 안전장치
+        if (!response.data || !response.data.choices || response.data.choices.length === 0) {
+            console.error('🚨 오픈라우터 에러 발생:', response.data);
+            return res.status(500).json({ success: false, error: 'AI가 이상한 데이터를 뱉음 (로그 확인)' });
+        }
+
+        const aiReply = response.data.choices[0].message.content;
+
+        session.messages.push({ role: 'user', content: message });
+        session.messages.push({ role: 'assistant', content: aiReply });
+        session.turnCount += 1;
+
+        await session.save();
+
+        res.json({ success: true, turnCount: session.turnCount, reply: aiReply });
+
+        // 🚨 [방아쇠] 턴 수가 N배수일 때 요약 함수 몰래 실행! (유저 대기 안 타게 비동기로 던짐)
+        if (session.summaryInterval > 0 && session.turnCount % session.summaryInterval === 0) {
+            runAutoSummary(session._id);
+        }
+    } catch (error) {
+        console.error('❌ 채팅 치다가 서버 터짐:', error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, error: 'AI가 대답 거부함' });
+    }
+});
+
+// 특정 채팅방(세션) 이전 대화 기록 불러오기
+router.get('/:sessionId', async (req, res) => {
+    try {
+        const session = await ChatSession.findById(req.params.sessionId);
+
+        if (!session) {
+            return res.status(404).json({ success: false, error: '방이 없는데 씨발?' });
+        }
+
+        res.json({
+            success: true,
+            messages: session.messages,
+            turnCount: session.turnCount
+        });
+    } catch (error) {
+        console.error('❌ 대화 기록 불러오다 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 전체 채팅방 목록 불러오기 (사이드바 렌더링용)
+router.get('/list/all', async (req, res) => {
+    try {
+        // characterId에서 이름(title)만 쏙 빼오고, 최신 업데이트 순으로 정렬
+        const sessions = await ChatSession.find()
+            .populate('characterId', 'title')
+            .populate('personaId', 'name')
+            .sort({ updatedAt: -1 });
+
+        res.json({ success: true, list: sessions });
+    } catch (error) {
+        console.error('❌ 채팅방 목록 불러오다 좆됨:', error);
+        res.status(500).json({ success: false, error: '목록 못 불러옴' });
+    }
+});
+
+// 유저 또는 AI 채팅 텍스트 멱살 잡고 직접 수정하기
+router.put('/:sessionId/message/:msgIndex', async (req, res) => {
+    try {
+        const { sessionId, msgIndex } = req.params;
+        const { newContent } = req.body;
+
+        if (!newContent) return res.status(400).json({ success: false, error: '야 수정할 내용을 적어야지' });
+
+        const session = await ChatSession.findById(sessionId);
+        if (!session) return res.status(404).json({ success: false, error: '방이 없네' });
+
+        // 해당 인덱스의 메시지가 존재하는지 확인
+        if (!session.messages[msgIndex]) {
+            return res.status(404).json({ success: false, error: '그딴 메시지 없음' });
+        }
+
+        // 기존 내용 날려버리고 새 내용으로 덮어쓰기!
+        session.messages[msgIndex].content = newContent;
+
+        await session.save(); // DB에 박제
+        console.log(`🔧 ${msgIndex}번째 메시지 조작 완료`);
+
+        res.json({ success: true, messages: session.messages });
+    } catch (error) {
+        console.error('❌ 메시지 수정 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 🎲 리롤(재생성) - 삭제 안 하고 swipes 배열에 보존하는 방식
+router.post('/:sessionId/reroll', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        // 🚨 [수정됨] 여기도 req.body에서 온도랑 토큰 뽑아오는 코드 추가!
+        const { temperature = 0.9, maxTokens = 1000 } = req.body;
+
+        const session = await ChatSession.findById(sessionId).populate('characterId').populate('personaId');
+
+        if (!session || session.messages.length === 0) return res.status(404).json({ success: false, error: '방이 없거나 대화가 없음' });
+
+        const lastMsg = session.messages[session.messages.length - 1];
+        if (lastMsg.role !== 'assistant') return res.status(400).json({ success: false, error: '마지막 턴이 AI가 아님' });
+
+        const character = session.characterId;
+        const persona = session.personaId;
+
+        const systemContent = `${character.systemPrompt}\n[유저 정보] 이름: ${persona.name}\n설정: ${persona.description}`;
+        const messagesForAI = [
+            { role: 'system', content: systemContent },
+            ...session.messages.slice(0, -1).map(msg => ({ role: msg.role, content: msg.content }))
+        ];
+
+        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+            model: 'qwen/qwen-2.5-72b-instruct',
+            messages: messagesForAI,
+            temperature: Math.max(0.01, Number(temperature)),
+            max_tokens: Math.min(4000, Number(maxTokens)),
+            top_p: 0.9,
+            repetition_penalty: 1.1
+        }, {
+            headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': 'http://localhost:5000' }
+        });
+
+        // 🚨 [신규] 리롤 칠 때도 안전장치 추가
+        if (!response.data || !response.data.choices || response.data.choices.length === 0) {
+            console.error('🚨 오픈라우터 에러 발생:', response.data);
+            return res.status(500).json({ success: false, error: 'AI가 리롤 응답을 거부함' });
+        }
+
+        const aiReply = response.data.choices[0].message.content;
+
+        if (!lastMsg.swipes || lastMsg.swipes.length === 0) {
+            lastMsg.swipes = [lastMsg.content];
+        }
+        lastMsg.swipes.push(aiReply);
+        lastMsg.content = aiReply;
+
+        await session.save();
+        res.json({ success: true, messages: session.messages });
+    } catch (error) {
+        console.error('❌ 리롤 좆됨:', error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 🗑️ 메시지 스마트 삭제 라우터 
+router.delete('/:sessionId/message/:msgIndex', async (req, res) => {
+    try {
+        const { sessionId, msgIndex } = req.params;
+        const session = await ChatSession.findById(sessionId);
+
+        if (!session) return res.status(404).json({ success: false, error: '방 없음' });
+        if (!session.messages[msgIndex]) return res.status(404).json({ success: false, error: '메시지 없음' });
+
+        const msg = session.messages[msgIndex];
+
+        // 💡 스와이프가 여러 개 존재할 경우: 현재 보고 있는 텍스트만 날림
+        if (msg.swipes && msg.swipes.length > 1) {
+            const currentSwipeIndex = msg.swipes.indexOf(msg.content);
+
+            if (currentSwipeIndex !== -1) {
+                msg.swipes.splice(currentSwipeIndex, 1); // 배열에서 현재 텍스트만 쏙 빼서 삭제
+
+                // 지우고 나서 빈자리는 남은 스와이프 중 맨 마지막 걸로 채워줌
+                msg.content = msg.swipes[msg.swipes.length - 1];
+            }
+        } else {
+            // 💡 스와이프가 1개밖에 없거나 아예 없으면? 메시지 턴 자체를 찢어버림
+            session.messages.splice(msgIndex, 1);
+        }
+
+        await session.save(); // DB 업데이트 빡!
+
+        res.json({ success: true, messages: session.messages });
+    } catch (error) {
+        console.error('❌ 삭제 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 🎭 채팅방(세션) 중간에 내 페르소나(캐릭터) 갈아끼우기
+router.put('/:sessionId/persona', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const { personaId } = req.body;
+
+        if (!personaId) return res.status(400).json({ success: false, error: '바꿀 페르소나 ID 내놔' });
+
+        const session = await ChatSession.findByIdAndUpdate(
+            sessionId,
+            { personaId: personaId },
+            { new: true } // 업데이트된 최신 정보 반환
+        );
+
+        if (!session) return res.status(404).json({ success: false, error: '방 없음' });
+
+        res.json({ success: true, session });
+    } catch (error) {
+        console.error('❌ 페르소나 변경 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 🧠 스마트 메모리 (요약 설정 & 텍스트) 직접 저장하기
+router.put('/:sessionId/memory', async (req, res) => {
+    try {
+        const { summaryInterval, summaryPrompt, memorySummary } = req.body;
+        const session = await ChatSession.findByIdAndUpdate(
+            req.params.sessionId,
+            { summaryInterval, summaryPrompt, memorySummary },
+            { new: true }
+        );
+        if (!session) return res.status(404).json({ success: false, error: '방 없음' });
+        res.json({ success: true, session });
+    } catch (error) {
+        console.error('❌ 메모리 저장 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 터짐' });
+    }
+});
+
+// 💡 백그라운드 몰래 요약하는 헬퍼 함수 (이건 라우터 밖, 그냥 파일 밑에 둬도 됨)
+const runAutoSummary = async (sessionId) => {
+    try {
+        const session = await ChatSession.findById(sessionId);
+        if (!session || !session.summaryPrompt) return;
+
+        // 최근 대화를 긁어와서 요약할 텍스트 덩어리로 만듦 (N턴 * 2개의 메시지)
+        const recentMsgs = session.messages.slice(-(session.summaryInterval * 2));
+        const textToSummarize = recentMsgs.map(m => `${m.role}: ${m.content}`).join('\n');
+
+        const prompt = `${session.summaryPrompt}\n\n[아래 대화를 요약해라]\n${textToSummarize}`;
+
+        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+            model: 'qwen/qwen-2.5-72b-instruct',
+            messages: [{ role: 'system', content: prompt }],
+            temperature: 0.3, // 💡 요약은 팩트 기반이어야 하니까 똘끼 확 낮춤
+            max_tokens: 500
+        }, { headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` } });
+
+        const newSummary = response.data.choices[0].message.content;
+
+        // 새로 요약된 걸 DB에 덮어씌움! (이제 다음 턴부터 AI가 이거 보고 대답함)
+        session.memorySummary = newSummary;
+        await session.save();
+        console.log(`🧠 [세션 ${sessionId}] 백그라운드 오토 요약 완료!`);
+    } catch (error) {
+        console.error('❌ 백그라운드 요약 좆됨:', error);
+    }
+};
+
+module.exports = router;

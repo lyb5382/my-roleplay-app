@@ -1,0 +1,52 @@
+.sidebar {
+    width: 250px;
+    background-color: #2b2b36;
+    border-right: 1px solid #3f3f4e;
+    display: flex;
+    flex-direction: column;
+
+    /* 💡 100vh가 아니라 100%로 바꿔야 부모(main-body) 크기에 맞춰서 얌전해짐! */
+    height: 100%;
+
+    color: white;
+}
+
+.sidebar-header {
+    padding: 20px;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #3f3f4e;
+    text-align: center;
+}
+
+.session-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.session-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #3f3f4e;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.session-item:hover {
+    background-color: #3f3f4e;
+}
+
+.session-item.active {
+    background-color: #ffe600;
+    color: black;
+    font-weight: bold;
+}
+
+.session-title {
+    font-size: 1rem;
+    margin-bottom: 5px;
+}
+
+.session-info {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
