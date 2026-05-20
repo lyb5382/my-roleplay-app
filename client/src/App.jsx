@@ -9,7 +9,7 @@ import './App.css';
 function App() {
   // 화면 모드 제어: 'home' (메인) | 'chat' (채팅방) | 'creator' (제작자)
   const [currentView, setCurrentView] = useState('home');
-
+  const [editingCharId, setEditingCharId] = useState(null);
   const [currentSessionId, setCurrentSessionId] = useState(() => {
     const saved = localStorage.getItem('activeSessionId');
     // 저장된 방이 있으면 시작부터 채팅방 띄워줌
@@ -31,10 +31,11 @@ function App() {
     localStorage.removeItem('activeSessionId');
   };
 
-  // 🛠️ 헤더에서 '제작자 모드' 버튼 눌렀을 때
+  // [수정할 함수] 헤더에서 그냥 '제작자 모드' 눌렀을 땐 새 캐릭터 만드는 거니까 초기화
   const handleGoCreator = () => {
-    setCurrentView('creator'); // 스튜디오로 전환
-    setCurrentSessionId(null); // 방 선택 해제
+    setCurrentView('creator');
+    setCurrentSessionId(null);
+    setEditingCharId(null); // 🚨 신규 생성 모드로 진입하게 초기화
     localStorage.removeItem('activeSessionId');
   };
 
@@ -43,6 +44,11 @@ function App() {
     setCurrentSessionId(newSessionId);
     localStorage.setItem('activeSessionId', newSessionId);
     setCurrentView('chat');
+  };
+
+  const handleEditCharacter = (charId) => {
+    setEditingCharId(charId); // 수정할 캐릭터 ID 저장
+    setCurrentView('creator'); // 스튜디오로 강제 워프!
   };
 
   return (
@@ -56,13 +62,19 @@ function App() {
         <Sidebar
           onSelectSession={handleSelectSession}
           activeSessionId={currentSessionId}
+          // 💡 방 삭제되었을 때 호출될 헬퍼 프롭스 추가
+          onSessionDeleted={(deletedId) => {
+            if (deletedId === currentSessionId) {
+              handleGoHome(); // 지금 보던 방이 터진 거면 메인 로비로 워프!
+            }
+          }}
         />
 
         {/* 화면 상태(currentView)에 따라 컴포넌트 갈아끼우기 */}
         <div className="main-content">
-          {currentView === 'home' && <HomeLobby onStartChat={handleStartNewChat} />}
+          {currentView === 'home' && <HomeLobby onStartChat={handleStartNewChat} onEditCharacter={handleEditCharacter} />}
           {currentView === 'chat' && <ChatRoom sessionId={currentSessionId} />}
-          {currentView === 'creator' && <CreatorStudio />}
+          {currentView === 'creator' && <CreatorStudio editCharId={editingCharId} onGoHome={handleGoHome} />}
         </div>
       </div>
     </div>

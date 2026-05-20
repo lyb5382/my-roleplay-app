@@ -50,11 +50,23 @@
 }
 
 /* AI 채팅 바블 (왼쪽) */
+.bubble-wrapper.assistant {
+    width: 100%;
+    /* 래퍼부터 화면 가로폭 100% 쫙 늘려줌 */
+}
+
 .bubble.assistant {
     align-self: flex-start;
-    background-color: #3f3f4e;
-    color: #fff;
-    border-bottom-left-radius: 2px;
+    background-color: transparent;
+    /* 좆같은 보라색 배경 삭제! */
+    color: #eee;
+    /* 너무 쨍한 흰색보단 눈 안 아픈 부드러운 흰색 */
+    max-width: 100%;
+    /* 75% 제한 풀어서 화면 꽉 차게 */
+    width: 100%;
+    padding: 10px 5px;
+    /* 배경이 없으니까 양옆 패딩 좀 줄이고 텍스트 돋보이게 */
+    border-radius: 0;
 }
 
 .chat-input-area {
@@ -357,4 +369,20 @@
     border-radius: 4px;
     font-size: 0.8rem;
     outline: none;
+}
+
+/* 마크다운 적용된 말풍선 안쪽 스타일 정리 */
+.bubble p {
+    margin: 0 0 8px 0;
+    /* 문단 사이 여백 살짝 */
+    line-height: 1.5;
+}
+
+.bubble p:last-child {
+    margin-bottom: 0;
+}
+
+.bubble strong {
+    color: #ffe600;
+    /* 강조 텍스트는 노란색으로 튀게 ㅋㅋㅋ */
 }

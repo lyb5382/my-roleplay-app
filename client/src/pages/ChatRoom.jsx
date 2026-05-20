@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 import './ChatRoom.css';
 
 const ChatRoom = ({ sessionId }) => {
@@ -23,11 +24,12 @@ const ChatRoom = ({ sessionId }) => {
     const [summaryInterval, setSummaryInterval] = useState(10);
     const [summaryPrompt, setSummaryPrompt] = useState('이전 대화의 핵심 내용과 현재 상황을 3문장 이내로 요약해라.');
     const [memorySummary, setMemorySummary] = useState('');
+    const [visualAssets, setVisualAssets] = useState([]);
+    const [activeVisualUrl, setActiveVisualUrl] = useState('');
     const messagesEndRef = useRef(null);
 
     // 2️⃣ useEffect들도 전부 훅이니까 여기서 다 선언!
     useEffect(() => {
-        // 여기서 return 하는 건 컴포넌트가 아니라 useEffect만 탈출하는 거라 안전함
         if (!sessionId) return;
         const fetchHistory = async () => {
             try {
@@ -35,7 +37,8 @@ const ChatRoom = ({ sessionId }) => {
                 if (res.data.success) {
                     setMessages(res.data.messages);
                     setCurrentPersonaId(res.data.session?.personaId?._id || res.data.session?.personaId);
-                    // 🚨 DB에 저장된 메모리 설정 덮어씌우기
+                    setVisualAssets(res.data.character?.visualAssets || []); // 🚨 에셋 목록 땡겨오기
+
                     if (res.data.session) {
                         setSummaryInterval(res.data.session.summaryInterval || 10);
                         setSummaryPrompt(res.data.session.summaryPrompt || '');
@@ -46,6 +49,28 @@ const ChatRoom = ({ sessionId }) => {
         };
         fetchHistory();
     }, [sessionId]);
+
+    useEffect(() => {
+        if (messages.length === 0) return;
+        // 가장 최근 메시지부터 역순으로 뒤져서 이미지 힌트 찾기
+        const latestImgMsg = [...messages].reverse().find(m => m.content.match(/\|\|asset_(tag|url):.*?\|\|/));
+
+        if (latestImgMsg) {
+            const tagMatch = latestImgMsg.content.match(/\|\|asset_tag:(.*?)\|\|/);
+            const urlMatch = latestImgMsg.content.match(/\|\|asset_url:(.*?)\|\|/);
+
+            if (urlMatch) {
+                setActiveVisualUrl(urlMatch[1].trim()); // 제작자가 프롤로그에 직접 박은 하드코딩 링크
+            } else if (tagMatch) {
+                const asset = visualAssets.find(a => a.tag === tagMatch[1].trim());
+                if (asset) setActiveVisualUrl(asset.url); // AI가 고른 다이내믹 상황별 태그
+            }
+        } else {
+            // 태그가 아무것도 없으면 메인 대표 이미지(default) 띄움
+            const defaultAsset = visualAssets.find(a => a.tag === 'default');
+            if (defaultAsset) setActiveVisualUrl(defaultAsset.url);
+        }
+    }, [messages, visualAssets]);
 
     // 페르소나 목록 서버에서 긁어오는 함수 (독립 선언)
     const loadPersonas = async () => {
@@ -224,49 +249,45 @@ const ChatRoom = ({ sessionId }) => {
 
             <div className="chat-body-wrapper">
                 <div className="chat-main-col">
+
+                    {activeVisualUrl && (
+                        <div style={{ width: '100%', height: '220px', background: `#111 url(${activeVisualUrl}) center/cover no-repeat`, borderBottom: '1px solid #3f3f4e', flexShrink: 0 }} />
+                    )}
                     <div className="chat-messages">
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`bubble-wrapper ${msg.role}`}>
+                        {messages.map((msg, index) => {
+                            // 💡 화면에 말풍선 띄울 땐 흉측한 시스템 태그 텍스트 다 날려버림!
+                            const displayContent = msg.content.replace(/\|\|asset_(tag|url):.*?\|\|/g, '').trim();
 
-                                {msg.role === 'user' && editingIndex !== index && (
-                                    <div className="msg-actions">
-                                        <button className="action-btn" onClick={() => handleEditStart(index, msg.content)} title="수정">✏️</button>
-                                        <button className="action-btn" onClick={() => handleDelete(index)} title="삭제">🗑️</button>
-                                    </div>
-                                )}
+                            return (
+                                <div key={index} className={`bubble-wrapper ${msg.role}`}>
+                                    {/* ... 기존 msg.actions 버튼들 ... */}
 
-                                {editingIndex === index ? (
-                                    <div className={`bubble ${msg.role}`} style={{ width: '100%' }}>
-                                        <textarea className="edit-textarea" rows="4" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
-                                        <div className="edit-actions">
-                                            <button className="save-btn" onClick={() => handleEditSave(index)}>저장</button>
-                                            <button className="cancel-btn" onClick={handleEditCancel}>취소</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className={`bubble ${msg.role}`}>
-                                        {msg.content}
-                                        {msg.swipes && msg.swipes.length > 1 && (
-                                            <div className="swipe-controls">
-                                                <button className="swipe-btn" onClick={() => handleSwipe(index, -1)}>◀</button>
-                                                {msg.swipes.indexOf(msg.content) + 1} / {msg.swipes.length}
-                                                <button className="swipe-btn" onClick={() => handleSwipe(index, 1)}>▶</button>
+                                    {editingIndex === index ? (
+                                        <div className={`bubble ${msg.role}`} style={{ width: '100%' }}>
+                                            {/* 수정 창에서는 쌩 텍스트(editContent) 그대로 보임 */}
+                                            <textarea className="edit-textarea" rows="4" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
+                                            <div className="edit-actions">
+                                                <button className="save-btn" onClick={() => handleEditSave(index)}>저장</button>
+                                                <button className="cancel-btn" onClick={handleEditCancel}>취소</button>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
+                                        </div>
+                                    ) : (
+                                        <div className={`bubble ${msg.role}`}>
+                                            {/* 🚨 쌩 텍스트 날려버리고 마크다운 렌더러로 덮어쓰기! */}
+                                            <ReactMarkdown>{displayContent}</ReactMarkdown>
 
-                                {msg.role === 'assistant' && editingIndex !== index && (
-                                    <div className="msg-actions">
-                                        {index === messages.length - 1 && (
-                                            <button className="action-btn" onClick={handleReroll} title="리롤">🎲</button>
-                                        )}
-                                        <button className="action-btn" onClick={() => handleEditStart(index, msg.content)} title="수정">✏️</button>
-                                        <button className="action-btn" onClick={() => handleDelete(index)} title="삭제">🗑️</button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                            {msg.swipes && msg.swipes.length > 1 && (
+                                                <div className="swipe-controls">
+                                                    <button className="swipe-btn" onClick={() => handleSwipe(index, -1)}>◀</button>
+                                                    {msg.swipes.indexOf(msg.content) + 1} / {msg.swipes.length}
+                                                    <button className="swipe-btn" onClick={() => handleSwipe(index, 1)}>▶</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                         {isLoading && <div className="bubble-wrapper assistant"><div className="bubble assistant">뇌 굴리는 중...</div></div>}
                         <div ref={messagesEndRef} />
                     </div>

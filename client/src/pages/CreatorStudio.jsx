@@ -1,17 +1,82 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 import './CreatorStudio.css';
 
-const CreatorStudio = () => {
-    const [activeTab, setActiveTab] = useState('main'); // [main, prompt, prologue, image, command, test]
+const CreatorStudio = ({ editCharId, onGoHome }) => {
+    const [activeTab, setActiveTab] = useState('main');
+    const [sandboxMessages, setSandboxMessages] = useState([]);
+    const [sandboxInput, setSandboxInput] = useState('');
+    const [isSandboxLoading, setIsSandboxLoading] = useState(false);
+    const [activeVisualUrl, setActiveVisualUrl] = useState('');
 
     // --- [상태 관리 데이터] ---
     const [characterData, setCharacterData] = useState({
-        title: '', summary: '', description: '', thumbnailUrl: '', backgroundUrl: '',
+        title: '', summary: '', description: '',
+        // 🚨 에셋 구조 통합 (기본값으로 메인 썸네일용 default 하나만 남겨둠)
+        visualAssets: [
+            { tag: 'default', url: '', description: '캐릭터의 기본 평상시 모습 및 메인 대표 이미지' }
+        ],
         systemPrompt: '', guideline: '', useGuideline: false,
-        prologues: [{ title: '', guide: '', description: '' }], // 최대 3개
-        keywords: [{ trigger: '', action: '', priority: 1 }] // 명령어 시스템
+        prologues: [{ title: '', guide: '', description: '' }],
+        keywords: [{ trigger: '', action: '', priority: 1 }]
     });
+
+    React.useEffect(() => {
+        if (editCharId) {
+            const fetchCharacter = async () => {
+                try {
+                    const res = await axios.get(`http://localhost:5000/api/character/${editCharId}`);
+                    if (res.data.success) {
+                        const char = res.data.character;
+                        setCharacterData({
+                            title: char.title || '',
+                            summary: char.summary || '',
+                            description: char.description || '',
+                            systemPrompt: char.systemPrompt || '',
+                            guideline: char.guideline || '',
+                            useGuideline: !!char.guideline,
+                            visualAssets: char.visualAssets && char.visualAssets.length > 0
+                                ? char.visualAssets
+                                : [{ tag: 'default', url: '', description: '' }],
+                            prologues: char.prologues && char.prologues.length > 0
+                                ? char.prologues
+                                : [{ title: '', guide: '', description: '' }],
+                            keywords: char.keywords && char.keywords.length > 0
+                                ? char.keywords
+                                : [{ trigger: '', action: '', priority: 1 }]
+                        });
+                    }
+                } catch (error) {
+                    console.error('기존 데이터 불러오기 좆됨:', error);
+                }
+            };
+            fetchCharacter();
+        }
+    }, [editCharId]);
+
+    // 🖼️ 통합 에셋 변경 핸들러
+    const handleAssetChange = (index, field, value) => {
+        const newAssets = [...characterData.visualAssets];
+        newAssets[index][field] = value;
+        setCharacterData(prev => ({ ...prev, visualAssets: newAssets }));
+    };
+
+    // ➕ 이미지 에셋 무한 추가
+    const addAsset = () => {
+        setCharacterData(prev => ({
+            ...prev,
+            visualAssets: [...prev.visualAssets, { tag: '', url: '', description: '' }]
+        }));
+    };
+
+    // 🗑️ 이미지 에셋 삭제
+    const deleteAsset = (index) => {
+        if (characterData.visualAssets[index].tag === 'default') return alert('default 이미지는 메인 썸네일이라 지우면 안 돼 파트너');
+        const newAssets = [...characterData.visualAssets];
+        newAssets.splice(index, 1);
+        setCharacterData(prev => ({ ...prev, visualAssets: newAssets }));
+    };
 
     // --- [데이터 핸들러] ---
     const handleChange = (e) => {
@@ -46,26 +111,93 @@ const CreatorStudio = () => {
     // 🚀 DB 런칭 (쉼표로 키워드 쪼개는 마법 추가)
     const handleLaunch = async () => {
         try {
-            // 💡 키워드 배열을 순회하면서 trigger 텍스트를 쉼표(,) 기준으로 쪼개서 배열로 변환함
             const formattedKeywords = characterData.keywords.map(k => ({
                 ...k,
-                // "사과, 바나나, 포도" -> ["사과", "바나나", "포도"] 이렇게 쪼개고 빈칸 없앰
-                trigger: k.trigger.split(',').map(t => t.trim()).filter(t => t !== '')
+                trigger: Array.isArray(k.trigger) ? k.trigger : k.trigger.split(',').map(t => t.trim()).filter(t => t !== '')
             }));
 
             const payload = {
                 ...characterData,
                 guideline: characterData.useGuideline ? characterData.guideline : '',
-                keywords: formattedKeywords // 🚨 쪼갠 키워드 배열로 바꿔치기해서 보냄!
+                keywords: formattedKeywords
             };
 
-            const res = await axios.post('http://localhost:5000/api/character/create', payload);
-            if (res.data.success) alert(`✨ 조물주 펀치! [${characterData.title}] 세계관 창조 완료!`);
+            if (editCharId) {
+                // 🚨 수정 모드일 땐 PUT 요청!
+                const res = await axios.put(`http://localhost:5000/api/character/${editCharId}`, payload);
+                if (res.data.success) {
+                    alert(`✨ [${characterData.title}] 수정 완료! 메인으로 돌아간다.`);
+                    if (onGoHome) onGoHome(); // 수정 완료되면 로비로 튕겨내기
+                }
+            } else {
+                // 🚨 신규 생성 모드일 땐 기존대로 POST 요청!
+                const res = await axios.post('http://localhost:5000/api/character/create', payload);
+                if (res.data.success) {
+                    alert(`✨ 조물주 펀치! [${characterData.title}] 세계관 창조 완료!`);
+                    if (onGoHome) onGoHome(); // 만들고 나서도 로비로 튕겨내기
+                }
+            }
         } catch (error) {
             console.error(error);
-            alert('런칭 실패 ㅆㅂ 백엔드 터짐');
+            alert('런칭/수정 실패 ㅆㅂ 백엔드 터짐');
         }
     };
+
+    // 🧪 샌드박스 테스트 메시지 전송
+    const sendSandboxMessage = async () => {
+        if (!sandboxInput.trim() || isSandboxLoading) return;
+
+        const userMsg = { role: 'user', content: sandboxInput };
+        const updatedMessages = [...sandboxMessages, userMsg];
+
+        setSandboxMessages(updatedMessages);
+        setSandboxInput('');
+        setIsSandboxLoading(true);
+
+        try {
+            const res = await axios.post('http://localhost:5000/api/character/sandbox/test', {
+                ...characterData,
+                messages: updatedMessages
+            });
+
+            if (res.data.success) {
+                let aiReply = res.data.reply;
+
+                // 💡 AI 답변 속에 파싱용 힌트(||asset_tag:어쩌구||)가 들어있는지 검사
+                const tagMatch = aiReply.match(/\|\|asset_tag:(.*?)\|\|/);
+                const urlMatch = aiReply.match(/\|\|asset_url:(.*?)\|\|/);
+                if (urlMatch) {
+                    setActiveVisualUrl(urlMatch[1].trim());
+                } else if (tagMatch && tagMatch[1]) {
+                    const matchedTag = tagMatch[1].trim();
+                    const asset = characterData.visualAssets.find(a => a.tag === matchedTag);
+                    if (asset && asset.url) setActiveVisualUrl(asset.url);
+                }
+
+                // 화면에서 텍스트 날려버리기
+                aiReply = aiReply.replace(/\|\|asset_(tag|url):.*?\|\|/g, '').trim();
+
+                setSandboxMessages(prev => [...prev, { role: 'assistant', content: aiReply }]);
+            }
+        } catch (error) {
+            console.error(error);
+            setSandboxMessages(prev => [...prev, { role: 'system', content: '❌ 테스트 API 통신 좆됨 씨발.' }]);
+        } finally {
+            setIsSandboxLoading(false);
+        }
+    };
+
+    // 💡 테스트 탭이 켜질 때 첫 프롤로그 자동 장전해주는 기믹 (개꿀맛)
+    React.useEffect(() => {
+        if (activeTab === 'test' && sandboxMessages.length === 0) {
+            const firstPrologue = characterData.prologues[0]?.description;
+            const defaultImg = characterData.visualAssets.find(a => a.tag === 'default')?.url;
+            if (defaultImg) setActiveVisualUrl(defaultImg);
+            if (firstPrologue) {
+                setSandboxMessages([{ role: 'assistant', content: firstPrologue }]);
+            }
+        }
+    }, [activeTab]);
 
     return (
         <div className="studio-container">
@@ -135,8 +267,64 @@ const CreatorStudio = () => {
                     {/* 4. 이미지 탭 */}
                     {activeTab === 'image' && (
                         <div className="tab-content">
-                            <h3>🖼️ 배경 에셋 등록</h3>
-                            <div className="form-group"><label>채팅방 배경 이미지 URL</label><input type="text" name="backgroundUrl" value={characterData.backgroundUrl} onChange={handleChange} /></div>
+                            <h3>🖼️ 멀티 비주얼 에셋 스튜디오</h3>
+                            <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '15px' }}>
+                                * 배경, 캐릭터 표정, 특정 아이템 등 필요한 이미지를 제한 없이 등록하세요.<br />
+                                * 각 이미지의 <strong style={{ color: '#ffe600' }}>상황 설명</strong>을 자세히 적어두면, AI가 롤플레잉 도중 맥락을 분석해 알맞은 이미지를 자동으로 소환합니다.
+                            </p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {characterData.visualAssets.map((asset, index) => (
+                                    <div key={index} className="keyword-card" style={{ borderColor: asset.tag === 'default' ? '#ffe600' : '#3f3f4e' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <span style={{ fontWeight: 'bold', color: asset.tag === 'default' ? '#ffe600' : '#fff' }}>
+                                                📷 이미지 에셋 #{index + 1} {asset.tag === 'default' && '(메인 대표)'}
+                                            </span>
+                                            {asset.tag !== 'default' && (
+                                                <button className="nav-buttons" style={{ padding: '3px 8px', backgroundColor: '#ff4d4d', fontSize: '0.8rem' }} onClick={() => deleteAsset(index)}>
+                                                    🗑️ 이미지 제거
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                            <div className="form-group" style={{ width: '200px', marginBottom: 0 }}>
+                                                <label>이미지 이름 (태그)</label>
+                                                <input
+                                                    type="text"
+                                                    value={asset.tag}
+                                                    onChange={(e) => handleAssetChange(index, 'tag', e.target.value)}
+                                                    placeholder="예: angry_face, boss_room"
+                                                    disabled={asset.tag === 'default'}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                                <label>이미지 URL 링크</label>
+                                                <input
+                                                    type="text"
+                                                    value={asset.url}
+                                                    onChange={(e) => handleAssetChange(index, 'url', e.target.value)}
+                                                    placeholder="호스팅 서버의 이미지 URL 복붙..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group" style={{ marginBottom: 0 }}>
+                                            <label>이 이미지가 출력될 조건/상황 설명</label>
+                                            <input
+                                                type="text"
+                                                value={asset.description}
+                                                onChange={(e) => handleAssetChange(index, 'description', e.target.value)}
+                                                placeholder="예: 주인공에게 화가 나서 소리를 지를 때, 웅장한 마왕성에 처음 진입했을 때"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button className="nav-buttons" style={{ marginTop: '10px', padding: '12px' }} onClick={addAsset}>
+                                    ➕ 새로운 이미지 등록칸 추가
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -176,12 +364,44 @@ const CreatorStudio = () => {
                 {/* 우측 샌드박스 테스터 (채팅창 UI 재활용) */}
                 <div className="sandbox-tester">
                     <div className="sandbox-header">SANDBOX TESTER</div>
-                    <div style={{ flex: 1, padding: '10px', fontSize: '0.8rem', color: '#888', textAlign: 'center' }}>
-                        [테스트 채팅 구역 - 실시간 프롬프트 반영]
+
+                    {/* 상황별 다이내믹 이미지가 출력될 미니 캔버스 */}
+                    {activeVisualUrl && (
+                        <div style={{ width: '100%', height: '150px', background: `#111 url(${activeVisualUrl}) center/cover no-repeat`, borderBottom: '1px solid #3f3f4e' }} />
+                    )}
+
+                    <div className="chat-messages" style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                        {sandboxMessages.map((msg, index) => (
+                            <div
+                                key={index}
+                                className={`bubble ${msg.role}`}
+                                style={{
+                                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                    backgroundColor: msg.role === 'user' ? '#ffe600' : '#2b2b36',
+                                    color: msg.role === 'user' ? '#000' : '#fff',
+                                    maxWidth: '85%',
+                                    padding: '8px 12px',
+                                    borderRadius: '8px'
+                                }}
+                            >
+                                {/* 🚨 기존 {msg.content} 찢어버리고 이걸로 교체! */}
+                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                        ))}
+                        {isSandboxLoading && <div style={{ color: '#888', fontStyle: 'italic', paddingLeft: '5px' }}>잼스 생각 중...</div>}
                     </div>
-                    <div className="chat-input-area">
-                        <input type="text" placeholder="테스트 메시지 입력..." />
-                        <button>전송</button>
+
+                    <div className="chat-input-area" style={{ padding: '10px', background: '#2b2b36' }}>
+                        <input
+                            type="text"
+                            value={sandboxInput}
+                            onChange={(e) => setSandboxInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendSandboxMessage()}
+                            placeholder={isSandboxLoading ? '대답 기다려라...' : '테스트 메시지 입력...'}
+                            disabled={isSandboxLoading}
+                            style={{ fontSize: '0.85rem', padding: '8px' }}
+                        />
+                        <button onClick={sendSandboxMessage} disabled={isSandboxLoading} style={{ padding: '0 15px', fontSize: '0.85rem' }}>전송</button>
                     </div>
                 </div>
             </div>

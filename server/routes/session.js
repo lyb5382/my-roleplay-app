@@ -6,20 +6,46 @@ const axios = require('axios');
 // 새 채팅방(세션) 생성
 router.post('/start', async (req, res) => {
     try {
-        const { characterId, personaId } = req.body;
+        // 💡 프롤로그 인덱스(몇 번째 프롤로그로 시작할지)를 프론트에서 받음. 기본값은 0(첫 번째)
+        const { characterId, personaId, prologueIndex = 0 } = req.body;
 
         if (!characterId || !personaId) {
             return res.status(400).json({ success: false, error: '캐릭터 ID랑 페르소나 ID 둘 다 내놔' });
         }
 
+        // 1. 캐릭터 DB에서 프롤로그 텍스트를 긁어오기 위해 캐릭터 정보 로드
+        const CharacterCard = require('../models/CharacterCard'); // (상단에 있으면 지워도 됨)
+        const character = await CharacterCard.findById(characterId);
+
+        if (!character) {
+            return res.status(404).json({ success: false, error: '그런 캐릭터 없는데?' });
+        }
+
+        // 2. 프롤로그가 존재하는지 확인하고 첫 메시지로 세팅
+        let initialMessages = [];
+
+        if (character.prologues && character.prologues.length > 0) {
+            // 유저가 선택한 프롤로그 번호가 없거나 범위 초과면 무조건 0번(첫 번째) 프롤로그로 강제 지정
+            const selectedPrologue = character.prologues[prologueIndex] || character.prologues[0];
+
+            if (selectedPrologue.description) {
+                initialMessages.push({
+                    role: 'assistant',
+                    content: selectedPrologue.description // 🚨 프롤로그 본문을 첫 AI 대답으로 쑤셔넣음!
+                });
+            }
+        }
+
+        // 3. 텅 빈 방 대신 프롤로그가 꽂힌 방으로 생성!
         const newSession = new ChatSession({
             characterId,
             personaId,
-            messages: [] // 처음엔 대화 내역 텅 비어있음
+            messages: initialMessages, // 배열에 프롤로그 꽂혀있음
+            turnCount: initialMessages.length > 0 ? 1 : 0 // 프롤로그가 있으면 턴 수도 1부터 시작
         });
 
         await newSession.save();
-        console.log(`🔥 새 채팅방 오픈 완료! (세션 ID: ${newSession._id})`);
+        console.log(`🔥 새 채팅방 오픈 완료! 첫 프롤로그 장전 됨. (세션 ID: ${newSession._id})`);
 
         res.status(201).json({ success: true, sessionId: newSession._id });
     } catch (error) {
@@ -32,7 +58,6 @@ router.post('/start', async (req, res) => {
 router.post('/:sessionId/chat', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        // 🚨 [수정됨] 프론트에서 넘어온 온도랑 토큰 길이 확실하게 뽑아오기!
         const { message, temperature = 0.9, maxTokens = 1000 } = req.body;
 
         if (!message) return res.status(400).json({ success: false, error: '야 채팅을 쳐야 대답을 하지' });
@@ -43,27 +68,39 @@ router.post('/:sessionId/chat', async (req, res) => {
 
         if (!session) return res.status(404).json({ success: false, error: '채팅방이 없는데?' });
 
-        const character = session.characterId;
-        const persona = session.personaId;
+        // 🚨 [방어막 1] 캐릭터나 페르소나가 모종의 이유로 삭제됐을 때 서버 뻗지 않게 기본값 멕임
+        const character = session.characterId || {};
+        const persona = session.personaId || {};
+
+        // 🚨 [방어막 2] undefined 텍스트 섞여서 400 에러 터지는 거 원천 차단
+        const charPrompt = character.systemPrompt || '너는 AI 챗봇이다.';
+        const charGuide = character.guideline ? `\n[절대 규칙]: ${character.guideline}` : '';
+        const personaName = persona.name || '알 수 없는 유저';
+        const personaDesc = persona.description || '정보 없음';
 
         const systemContent = `
-        ${character.systemPrompt}
-        ${character.guideline ? '\n[절대 규칙]: ' + character.guideline : ''}
-        
-        [현재 상대하는 유저 정보]
-        이름: ${persona.name}
-        설정: ${persona.description}
-  
-        ${session.memorySummary ? '\n[이전 대화 요약]: ' + session.memorySummary : ''}
-      `;
+${charPrompt}
+${charGuide}
 
+[현재 상대하는 유저 정보]
+이름: ${personaName}
+설정: ${personaDesc}
+
+${session.memorySummary ? '[이전 대화 요약]: ' + session.memorySummary : ''}
+        `.trim(); // 🚨 .trim()으로 양끝 쓸데없는 공백이나 줄바꿈 찌꺼기 싹 날려버림
+
+        // 🚨 [방어막 3] 기존 대화 기록 중 오류로 텅 빈 메시지가 껴있으면 오픈라우터가 발작하니까 filter로 걸러냄
         const messagesForAI = [
             { role: 'system', content: systemContent },
-            ...session.messages.map(msg => ({ role: msg.role, content: msg.content })),
+            ...session.messages
+                .filter(msg => msg.content && msg.content.trim() !== '')
+                .map(msg => ({ role: msg.role, content: msg.content })),
             { role: 'user', content: message }
         ];
 
         console.log('🤖 뇌 풀가동 중... (턴 수:', session.turnCount + 1, ')');
+        // 🔥 혹시 또 터질 때를 대비한 엑스레이 (이제 터미널에 우리가 쏜 데이터 예쁘게 찍힘)
+        console.log("🔥 [오픈라우터 전송 직전 엑스레이]:", JSON.stringify(messagesForAI, null, 2));
 
         const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'qwen/qwen-2.5-72b-instruct',
@@ -80,7 +117,6 @@ router.post('/:sessionId/chat', async (req, res) => {
             }
         });
 
-        // 🚨 [신규] 오픈라우터가 에러 뱉었을 때 백엔드 터지는 거 방지하는 안전장치
         if (!response.data || !response.data.choices || response.data.choices.length === 0) {
             console.error('🚨 오픈라우터 에러 발생:', response.data);
             return res.status(500).json({ success: false, error: 'AI가 이상한 데이터를 뱉음 (로그 확인)' });
@@ -96,12 +132,11 @@ router.post('/:sessionId/chat', async (req, res) => {
 
         res.json({ success: true, turnCount: session.turnCount, reply: aiReply });
 
-        // 🚨 [방아쇠] 턴 수가 N배수일 때 요약 함수 몰래 실행! (유저 대기 안 타게 비동기로 던짐)
         if (session.summaryInterval > 0 && session.turnCount % session.summaryInterval === 0) {
             runAutoSummary(session._id);
         }
     } catch (error) {
-        console.error('❌ 채팅 치다가 서버 터짐:', error.response ? error.response.data : error.message);
+        console.error('❌ 채팅 치다가 서버 터짐:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
         res.status(500).json({ success: false, error: 'AI가 대답 거부함' });
     }
 });
@@ -109,7 +144,8 @@ router.post('/:sessionId/chat', async (req, res) => {
 // 특정 채팅방(세션) 이전 대화 기록 불러오기
 router.get('/:sessionId', async (req, res) => {
     try {
-        const session = await ChatSession.findById(req.params.sessionId);
+        // 🚨 populate('characterId') 추가해서 캐릭터의 visualAssets 에셋 풀까지 다 긁어옴
+        const session = await ChatSession.findById(req.params.sessionId).populate('characterId');
 
         if (!session) {
             return res.status(404).json({ success: false, error: '방이 없는데 씨발?' });
@@ -118,7 +154,9 @@ router.get('/:sessionId', async (req, res) => {
         res.json({
             success: true,
             messages: session.messages,
-            turnCount: session.turnCount
+            turnCount: session.turnCount,
+            session: session, // 기존 메모리 세팅용
+            character: session.characterId // 🚨 프론트로 캐릭터 에셋 풀 넘겨주기!
         });
     } catch (error) {
         console.error('❌ 대화 기록 불러오다 좆됨:', error);
@@ -316,10 +354,20 @@ const runAutoSummary = async (sessionId) => {
 
         const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'qwen/qwen-2.5-72b-instruct',
-            messages: [{ role: 'system', content: prompt }],
-            temperature: 0.3, // 💡 요약은 팩트 기반이어야 하니까 똘끼 확 낮춤
-            max_tokens: 500
-        }, { headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` } });
+            messages: messagesForAI,
+            temperature: Math.max(0.01, Number(temperature)),
+            max_tokens: Math.min(4000, Number(maxTokens)),
+            top_p: 0.9,
+            repetition_penalty: 1.1,
+            // 🚨 [응급 처방] 찐빠난 Novita 서버 강제 차단하고 정상 서버로 우회!
+            provider: { ignore: ["Novita"] }
+        }, {
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'HTTP-Referer': 'http://localhost:5000',
+                'X-Title': 'RoleplayApp'
+            }
+        });
 
         const newSummary = response.data.choices[0].message.content;
 
@@ -331,5 +379,25 @@ const runAutoSummary = async (sessionId) => {
         console.error('❌ 백그라운드 요약 좆됨:', error);
     }
 };
+
+// 🗑️ 채팅방(세션) 영구 삭제 라우터
+router.delete('/:sessionId', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        // DB에서 세션 멱살 잡고 찢어버리기
+        const session = await ChatSession.findByIdAndDelete(sessionId);
+
+        if (!session) {
+            return res.status(404).json({ success: false, error: '이미 터지고 없는 방인데?' });
+        }
+
+        console.log(`🔥 세션 폭파 완료! (세션 ID: ${sessionId})`);
+        res.json({ success: true, message: '채팅방 컷 완!' });
+    } catch (error) {
+        console.error('❌ 채팅방 폭파 중 좆됨:', error);
+        res.status(500).json({ success: false, error: '서버 에러남' });
+    }
+});
 
 module.exports = router;
