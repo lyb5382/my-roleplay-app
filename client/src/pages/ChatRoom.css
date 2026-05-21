@@ -117,7 +117,7 @@
 }
 
 /* 하단 입력창에 있던 리롤 버튼 숨기기 (이제 안 씀) */
-.reroll-btn {
+.chat-input-area .reroll-btn {
     display: none !important;
 }
 
@@ -264,6 +264,23 @@
     flex-direction: column;
     padding: 20px;
     gap: 25px;
+    overflow-y: auto;
+    /* 세로 스크롤 활성화 빡! */
+    max-height: 100%;
+    /* 부모 높이 안 넘어가게 브레이크 걸기 */
+}
+
+.chat-settings-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-settings-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-settings-sidebar::-webkit-scrollbar-thumb {
+    background: #3f3f4e;
+    border-radius: 10px;
 }
 
 .setting-section {

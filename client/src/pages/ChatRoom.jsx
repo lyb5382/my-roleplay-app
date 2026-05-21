@@ -22,10 +22,13 @@ const ChatRoom = ({ sessionId }) => {
     const [newPersonaName, setNewPersonaName] = useState('');
     const [newPersonaDesc, setNewPersonaDesc] = useState('');
     const [summaryInterval, setSummaryInterval] = useState(10);
+    const [selectedProvider, setSelectedProvider] = useState('QWEN');
     const [summaryPrompt, setSummaryPrompt] = useState('이전 대화의 핵심 내용과 현재 상황을 3문장 이내로 요약해라.');
+    const [availableModels, setAvailableModels] = useState({});
     const [memorySummary, setMemorySummary] = useState('');
     const [visualAssets, setVisualAssets] = useState([]);
     const [activeVisualUrl, setActiveVisualUrl] = useState('');
+    const [selectedModel, setSelectedModel] = useState('qwen/qwen-2.5-72b-instruct');
     const messagesEndRef = useRef(null);
 
     // 2️⃣ useEffect들도 전부 훅이니까 여기서 다 선언!
@@ -72,6 +75,44 @@ const ChatRoom = ({ sessionId }) => {
         }
     }, [messages, visualAssets]);
 
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const res = await axios.get('https://openrouter.ai/api/v1/models');
+                const sortedModels = res.data.data.sort((a, b) => a.name.localeCompare(b.name));
+
+                // 🚨 잼스가 엄선한 VIP 제조사 라인업 (이거 말고는 입장 컷)
+                const allowedProviders = [
+                    'GOOGLE',       // 제미니
+                    'ANTHROPIC',    // 클로드
+                    'OPENAI',       // GPT
+                    'META',         // 라마 (오픈소스 대장)
+                    'QWEN',         // 큐원 (가성비 원탑)
+                    'MISTRAL',      // 미스트랄 (무검열 특화)
+                    'COHERE',       // 커맨드 R (캐릭터 연기 장인)
+                    'NOUSRESEARCH', // 헤르메스 (과몰입 변태들)
+                    'DEEPSEEK'      // 딥시크 (요즘 폼 미침)
+                ];
+
+                const grouped = sortedModels.reduce((acc, model) => {
+                    const provider = model.id.split('/')[0].toUpperCase();
+
+                    // 💡 배열에 있는 VIP 제조사일 때만 방에 들여보내줌
+                    if (allowedProviders.includes(provider)) {
+                        if (!acc[provider]) acc[provider] = [];
+                        acc[provider].push(model);
+                    }
+                    return acc;
+                }, {});
+
+                setAvailableModels(grouped);
+            } catch (error) {
+                console.error('❌ 모델 리스트 털기 좆됨:', error);
+            }
+        };
+        fetchModels();
+    }, []);
+
     // 페르소나 목록 서버에서 긁어오는 함수 (독립 선언)
     const loadPersonas = async () => {
         try {
@@ -102,7 +143,8 @@ const ChatRoom = ({ sessionId }) => {
             const res = await axios.post(`http://localhost:5000/api/session/${sessionId}/chat`, {
                 message: userMsg.content,
                 temperature: Number(temperature),
-                maxTokens: Number(maxTokens)
+                maxTokens: Number(maxTokens),
+                model: selectedModel // 🚨 추가!
             });
             setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }]);
         } catch (error) {
@@ -118,7 +160,8 @@ const ChatRoom = ({ sessionId }) => {
         try {
             const res = await axios.post(`http://localhost:5000/api/session/${sessionId}/reroll`, {
                 temperature: Number(temperature),
-                maxTokens: Number(maxTokens)
+                maxTokens: Number(maxTokens),
+                model: selectedModel // 🚨 추가!
             });
             if (res.data.success) setMessages(res.data.messages);
         } catch (error) { alert('리롤 실패 ㅆㅂ'); } finally { setIsLoading(false); }
@@ -260,7 +303,16 @@ const ChatRoom = ({ sessionId }) => {
 
                             return (
                                 <div key={index} className={`bubble-wrapper ${msg.role}`}>
-                                    {/* ... 기존 msg.actions 버튼들 ... */}
+                                    <div className="msg-actions">
+                                        <button className="action-btn edit-btn" onClick={() => handleEditStart(index, msg.content)}>✏️</button>
+
+                                        {/* 🚨 마지막 턴이고 AI 메시지일 때만 리롤 버튼(🎲) 띄워주기 */}
+                                        {msg.role === 'assistant' && index === messages.length - 1 && (
+                                            <button className="action-btn" onClick={handleReroll} title="리롤(재생성)">🎲</button>
+                                        )}
+
+                                        <button className="action-btn delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
+                                    </div>
 
                                     {editingIndex === index ? (
                                         <div className={`bubble ${msg.role}`} style={{ width: '100%' }}>
@@ -301,115 +353,46 @@ const ChatRoom = ({ sessionId }) => {
                 {showSettings && (
                     <div className="chat-settings-sidebar">
                         <div className="setting-section">
-                            <label>🎭 내 페르소나 관리</label>
-                            <div className="persona-control-group">
-                                <select
-                                    className="persona-select"
-                                    value={currentPersonaId}
-                                    onChange={(e) => {
-                                        handlePersonaChange(e);
-                                        setIsEditingPersona(false); // 캐릭 바꾸면 수정창 닫기
-                                        setIsCreatingPersona(false); // 생성 창 열려있으면 닫기
-                                    }}
-                                >
-                                    <option value="">캐릭터 선택</option>
-                                    {personasList.map(p => (
-                                        <option key={p._id} value={p._id}>{p.name}</option>
-                                    ))}
-                                </select>
+                            <label>🏢 1. 제조사 선택</label>
+                            <select
+                                value={selectedProvider}
+                                onChange={(e) => {
+                                    const newProvider = e.target.value;
+                                    setSelectedProvider(newProvider);
+                                    // 💡 잼스의 센스: 제조사 바꿨을 때, 에러 안 나게 그 제조사의 첫 번째 모델로 자동 세팅해 줌!
+                                    if (availableModels[newProvider] && availableModels[newProvider].length > 0) {
+                                        setSelectedModel(availableModels[newProvider][0].id);
+                                    }
+                                }}
+                                style={{ width: '100%', padding: '10px', backgroundColor: '#1e1e24', color: '#fff', border: '1px solid #3f3f4e', borderRadius: '6px', outline: 'none', fontWeight: 'bold', marginBottom: '15px' }}
+                                disabled={isLoading || Object.keys(availableModels).length === 0}
+                            >
+                                {Object.keys(availableModels).length > 0 ? (
+                                    Object.keys(availableModels).sort().map(provider => (
+                                        <option key={provider} value={provider}>{provider}</option>
+                                    ))
+                                ) : (
+                                    <option>로딩 중...</option>
+                                )}
+                            </select>
 
-                                {/* 💡 생성 및 수정/삭제 버튼 구역이 여길 통째로 빠져있었음! */}
-                                <div className="persona-btn-row">
-                                    <button className="persona-mini-btn edit" style={{ backgroundColor: '#ffe600', color: '#000' }} onClick={() => {
-                                        setIsCreatingPersona(!isCreatingPersona);
-                                        setIsEditingPersona(false);
-                                    }}>
-                                        {isCreatingPersona ? '취소' : '➕ 새 프로필'}
-                                    </button>
-
-                                    {currentPersonaId && !isCreatingPersona && (
-                                        <>
-                                            <button className="persona-mini-btn edit" onClick={() => {
-                                                const active = personasList.find(p => p._id === currentPersonaId);
-                                                setPersonaEditName(active?.name || '');
-                                                setPersonaEditDesc(active?.description || '');
-                                                setIsEditingPersona(!isEditingPersona);
-                                            }}>
-                                                {isEditingPersona ? '취소' : '✏️ 수정'}
-                                            </button>
-                                            <button className="persona-mini-btn delete" onClick={handlePersonaDelete}>🗑️ 삭제</button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                            {/* 🧠 스마트 메모리 컨트롤 구역 */}
-                            <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
-                                <label>🧠 스마트 메모리 (오토 요약)</label>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa', fontSize: '0.8rem' }}>
-                                    <span>요약 주기 (턴)</span>
-                                    <input
-                                        type="number"
-                                        min="0" max="50"
-                                        value={summaryInterval}
-                                        onChange={(e) => setSummaryInterval(e.target.value)}
-                                        style={{ width: '50px', backgroundColor: '#1e1e24', color: 'white', border: '1px solid #3f3f4e' }}
-                                    />
-                                </div>
-
-                                <textarea
-                                    rows="2"
-                                    value={summaryPrompt}
-                                    onChange={(e) => setSummaryPrompt(e.target.value)}
-                                    placeholder="어떻게 요약할지 지시어 입력 (예: 감정선 위주로 요약해라)"
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#1e1e24', color: 'white', border: '1px solid #3f3f4e', fontSize: '0.8rem', outline: 'none' }}
-                                />
-
-                                <label style={{ marginTop: '10px', color: '#888' }}>현재 뇌에 박힌 요약본 (직접 수정 가능)</label>
-                                <textarea
-                                    rows="4"
-                                    value={memorySummary}
-                                    onChange={(e) => setMemorySummary(e.target.value)}
-                                    placeholder="현재 저장된 요약 내용이 없습니다."
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#rgba(0,0,0,0.2)', color: '#ffe600', border: '1px solid #3f3f4e', fontSize: '0.8rem', outline: 'none' }}
-                                />
-
-                                <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem', width: '100%' }} onClick={handleMemorySave}>
-                                    메모리 업데이트 빡!
-                                </button>
-                            </div>
-                            {/* 💡 신규 생성 모드 폼 */}
-                            {isCreatingPersona && (
-                                <div className="persona-edit-form" style={{ border: '1px solid #ffe600' }}>
-                                    <span style={{ fontSize: '0.8rem', color: '#ffe600', fontWeight: 'bold' }}>✨ 신규 페르소나 등록</span>
-                                    <input
-                                        type="text"
-                                        value={newPersonaName}
-                                        onChange={(e) => setNewPersonaName(e.target.value)}
-                                        placeholder="프로필 이름 (예: 천재 해커 파트너)"
-                                    />
-                                    <textarea
-                                        rows="3"
-                                        value={newPersonaDesc}
-                                        onChange={(e) => setNewPersonaDesc(e.target.value)}
-                                        placeholder="나이, 성격, 외모 설정을 디테일하게 치셈..."
-                                    />
-                                    <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem' }} onClick={handlePersonaCreate}>
-                                        프로필 생성 빡!
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* 수정 모드 활성화 시 열리는 인라인 폼 */}
-                            {isEditingPersona && (
-                                <div className="persona-edit-form">
-                                    <input type="text" value={personaEditName} onChange={(e) => setPersonaEditName(e.target.value)} placeholder="프로필 이름" />
-                                    <textarea rows="3" value={personaEditDesc} onChange={(e) => setPersonaEditDesc(e.target.value)} placeholder="상세 설정 기입..." />
-                                    <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem' }} onClick={handlePersonaUpdate}>
-                                        프로필 변경사항 저장
-                                    </button>
-                                </div>
-                            )}
+                            <label>🧠 2. AI 뇌 교체 (모델 선택)</label>
+                            <select
+                                value={selectedModel}
+                                onChange={(e) => setSelectedModel(e.target.value)}
+                                style={{ width: '100%', padding: '10px', backgroundColor: '#1e1e24', color: '#ffe600', border: '1px solid #3f3f4e', borderRadius: '6px', outline: 'none', fontWeight: 'bold' }}
+                                disabled={isLoading || !availableModels[selectedProvider]}
+                            >
+                                {availableModels[selectedProvider] ? (
+                                    availableModels[selectedProvider].map((m) => (
+                                        <option key={m.id} value={m.id} style={{ color: 'white' }}>
+                                            {m.name} (입력: ${Number(m.pricing?.prompt || 0).toFixed(5)})
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option>제조사를 먼저 고르라고 ㅆㅂ</option>
+                                )}
+                            </select>
                         </div>
 
                         <div className="setting-section">

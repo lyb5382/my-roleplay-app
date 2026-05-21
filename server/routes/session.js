@@ -58,7 +58,8 @@ router.post('/start', async (req, res) => {
 router.post('/:sessionId/chat', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { message, temperature = 0.9, maxTokens = 1000 } = req.body;
+        // 🚨 req.body에서 model도 같이 뽑아오기! 기본값도 세팅해 둠.
+        const { message, temperature = 0.9, maxTokens = 1000, model = 'qwen/qwen-2.5-72b-instruct' } = req.body;
 
         if (!message) return res.status(400).json({ success: false, error: '야 채팅을 쳐야 대답을 하지' });
 
@@ -103,12 +104,13 @@ ${session.memorySummary ? '[이전 대화 요약]: ' + session.memorySummary : '
         console.log("🔥 [오픈라우터 전송 직전 엑스레이]:", JSON.stringify(messagesForAI, null, 2));
 
         const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: 'qwen/qwen-2.5-72b-instruct',
+            model: model, // 🚨 고정 텍스트 지우고 변수로 교체!
             messages: messagesForAI,
             temperature: Math.max(0.01, Number(temperature)),
             max_tokens: Math.min(4000, Number(maxTokens)),
             top_p: 0.9,
-            repetition_penalty: 1.1
+            repetition_penalty: 1.1,
+            provider: { ignore: ["Novita"] } // 찐빠 서버 방어막
         }, {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
