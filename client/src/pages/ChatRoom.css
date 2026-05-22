@@ -49,10 +49,10 @@
     border-bottom-right-radius: 2px;
 }
 
-/* AI 채팅 바블 (왼쪽) */
+/* AI쪽: 말풍선도 버튼도 전부 다 좌측 쏠림 (화면 꽉 차게) */
 .bubble-wrapper.assistant {
+    align-items: flex-start;
     width: 100%;
-    /* 래퍼부터 화면 가로폭 100% 쫙 늘려줌 */
 }
 
 .bubble.assistant {
@@ -103,17 +103,20 @@
     opacity: 0.8;
 }
 
-/* 메시지 겉포장지 (말풍선 + 수정버튼 가로 배치용) */
+/* 메시지 겉포장지 (말풍선 + 수정버튼 세로 배치용으로 떡상) */
 .bubble-wrapper {
     display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    margin-bottom: 5px;
+    flex-direction: column;
+    /* 🚨 가로에서 세로 정렬로 변경! */
+    gap: 4px;
+    /* 말풍선이랑 아래 버튼 사이 간격 */
+    margin-bottom: 15px;
+    /* 다음 대화 턴이랑 여백 좀 더 줌 */
 }
 
-/* 유저쪽은 수정 버튼이 왼쪽에 오게 */
+/* 유저쪽: 말풍선도 버튼도 전부 다 우측 쏠림 */
 .bubble-wrapper.user {
-    flex-direction: row-reverse;
+    align-items: flex-end;
 }
 
 /* 하단 입력창에 있던 리롤 버튼 숨기기 (이제 안 씀) */
@@ -121,13 +124,14 @@
     display: none !important;
 }
 
-/* 말풍선 옆에 뜨는 액션 버튼 그룹 (🎲 ✏️ 🗑️) */
+/* 말풍선 아래에 뜨는 액션 버튼 그룹 (🎲 ✏️ 🗑️) */
 .msg-actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     opacity: 0;
     transition: opacity 0.2s;
-    padding-bottom: 5px;
+    padding: 0 5px;
+    /* 양옆 패딩 살짝 줘서 말풍선 선이랑 예쁘게 맞춤 */
 }
 
 .bubble-wrapper:hover .msg-actions {
@@ -402,4 +406,21 @@
 .bubble strong {
     color: #ffe600;
     /* 강조 텍스트는 노란색으로 튀게 ㅋㅋㅋ */
+}
+
+/* 📢 유저 안내용 가이드라인 배너 */
+.room-guide-banner {
+    background-color: rgba(255, 230, 0, 0.05);
+    /* 노란색 아주 살짝 투명하게 */
+    border-left: 4px solid #ffe600;
+    /* 왼쪽에 엣지 주기 */
+    color: #ccc;
+    padding: 12px 16px;
+    margin: 15px 20px 0 20px;
+    /* 채팅창 상단에 딱 맞게 띄움 */
+    font-size: 0.85rem;
+    line-height: 1.4;
+    border-radius: 0 6px 6px 0;
+    word-break: keep-all;
+    /* 단어 안 깨지게 */
 }

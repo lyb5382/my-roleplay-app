@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import './ChatRoom.css';
 
 const ChatRoom = ({ sessionId }) => {
-    // 1️⃣ 모든 훅(Hooks)은 무조건 최상단에 배치! 절대 딴 거 먼저 오면 안 됨.
+    // 1️⃣ 상태 훅 선언
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -29,9 +29,17 @@ const ChatRoom = ({ sessionId }) => {
     const [visualAssets, setVisualAssets] = useState([]);
     const [activeVisualUrl, setActiveVisualUrl] = useState('');
     const [selectedModel, setSelectedModel] = useState('qwen/qwen-2.5-72b-instruct');
+    const [userNote, setUserNote] = useState('');
+    const [roomGuide, setRoomGuide] = useState('');
+
+    // 🚨 [신규 1] 최근 턴 몇 개 기억할 건지 조절하는 훅 (기본 15턴 = 메시지 30개)
+    const [contextLimit, setContextLimit] = useState(15);
+    // 🚨 [신규 2] 실시간 예상 비용 저장하는 훅
+    const [currentCost, setCurrentCost] = useState(0);
+
     const messagesEndRef = useRef(null);
 
-    // 2️⃣ useEffect들도 전부 훅이니까 여기서 다 선언!
+    // 2️⃣ useEffect: 방 기록 불러오기
     useEffect(() => {
         if (!sessionId) return;
         const fetchHistory = async () => {
@@ -40,12 +48,21 @@ const ChatRoom = ({ sessionId }) => {
                 if (res.data.success) {
                     setMessages(res.data.messages);
                     setCurrentPersonaId(res.data.session?.personaId?._id || res.data.session?.personaId);
-                    setVisualAssets(res.data.character?.visualAssets || []); // 🚨 에셋 목록 땡겨오기
+                    setVisualAssets(res.data.character?.visualAssets || []);
+
+                    if (res.data.character && res.data.character.prologues && res.data.character.prologues.length > 0) {
+                        setRoomGuide(res.data.character.prologues[0].guide || '');
+                    }
 
                     if (res.data.session) {
                         setSummaryInterval(res.data.session.summaryInterval || 10);
                         setSummaryPrompt(res.data.session.summaryPrompt || '');
                         setMemorySummary(res.data.session.memorySummary || '');
+                        setUserNote(res.data.session.userNote || '');
+
+                        const savedModel = res.data.session.model || 'qwen/qwen-2.5-72b-instruct';
+                        setSelectedModel(savedModel);
+                        setSelectedProvider(savedModel.split('/')[0].toUpperCase());
                     }
                 }
             } catch (error) { console.error('❌ 이전 기록 좆됨:', error); }
@@ -53,67 +70,67 @@ const ChatRoom = ({ sessionId }) => {
         fetchHistory();
     }, [sessionId]);
 
+    // 💡 이미지 트리거 로직
     useEffect(() => {
         if (messages.length === 0) return;
-        // 가장 최근 메시지부터 역순으로 뒤져서 이미지 힌트 찾기
         const latestImgMsg = [...messages].reverse().find(m => m.content.match(/\|\|asset_(tag|url):.*?\|\|/));
-
         if (latestImgMsg) {
             const tagMatch = latestImgMsg.content.match(/\|\|asset_tag:(.*?)\|\|/);
             const urlMatch = latestImgMsg.content.match(/\|\|asset_url:(.*?)\|\|/);
-
             if (urlMatch) {
-                setActiveVisualUrl(urlMatch[1].trim()); // 제작자가 프롤로그에 직접 박은 하드코딩 링크
+                setActiveVisualUrl(urlMatch[1].trim());
             } else if (tagMatch) {
                 const asset = visualAssets.find(a => a.tag === tagMatch[1].trim());
-                if (asset) setActiveVisualUrl(asset.url); // AI가 고른 다이내믹 상황별 태그
+                if (asset) setActiveVisualUrl(asset.url);
             }
         } else {
-            // 태그가 아무것도 없으면 메인 대표 이미지(default) 띄움
             const defaultAsset = visualAssets.find(a => a.tag === 'default');
             if (defaultAsset) setActiveVisualUrl(defaultAsset.url);
         }
     }, [messages, visualAssets]);
 
+    // 💡 모델 목록 불러오기
     useEffect(() => {
         const fetchModels = async () => {
             try {
                 const res = await axios.get('https://openrouter.ai/api/v1/models');
                 const sortedModels = res.data.data.sort((a, b) => a.name.localeCompare(b.name));
-
-                // 🚨 잼스가 엄선한 VIP 제조사 라인업 (이거 말고는 입장 컷)
-                const allowedProviders = [
-                    'GOOGLE',       // 제미니
-                    'ANTHROPIC',    // 클로드
-                    'OPENAI',       // GPT
-                    'META',         // 라마 (오픈소스 대장)
-                    'QWEN',         // 큐원 (가성비 원탑)
-                    'MISTRAL',      // 미스트랄 (무검열 특화)
-                    'COHERE',       // 커맨드 R (캐릭터 연기 장인)
-                    'NOUSRESEARCH', // 헤르메스 (과몰입 변태들)
-                    'DEEPSEEK'      // 딥시크 (요즘 폼 미침)
-                ];
-
+                const allowedProviders = ['GOOGLE', 'ANTHROPIC', 'OPENAI', 'META', 'QWEN', 'MISTRAL', 'COHERE', 'NOUSRESEARCH', 'DEEPSEEK'];
                 const grouped = sortedModels.reduce((acc, model) => {
                     const provider = model.id.split('/')[0].toUpperCase();
-
-                    // 💡 배열에 있는 VIP 제조사일 때만 방에 들여보내줌
                     if (allowedProviders.includes(provider)) {
                         if (!acc[provider]) acc[provider] = [];
                         acc[provider].push(model);
                     }
                     return acc;
                 }, {});
-
                 setAvailableModels(grouped);
-            } catch (error) {
-                console.error('❌ 모델 리스트 털기 좆됨:', error);
-            }
+            } catch (error) { console.error('❌ 모델 리스트 털기 좆됨:', error); }
         };
         fetchModels();
     }, []);
 
-    // 페르소나 목록 서버에서 긁어오는 함수 (독립 선언)
+    // 🚨 [신규 3] 입력창, 대화기록, 슬라이더 건드릴 때마다 예상 비용 실시간 야매 계산!
+    useEffect(() => {
+        if (!availableModels[selectedProvider]) return;
+        const modelData = availableModels[selectedProvider].find(m => m.id === selectedModel);
+        if (!modelData || !modelData.pricing) return;
+
+        const pricePerToken = Number(modelData.pricing.prompt) || 0; // 모델의 입력 1토큰당 가격
+
+        // 유저가 설정한 기억력 한도(contextLimit)만큼만 최근 대화 글자수 합산
+        const recentMsgs = messages.slice(-(contextLimit * 2));
+        const historyLength = recentMsgs.reduce((acc, m) => acc + (m.content?.length || 0), 0);
+
+        // (과거 대화 길이) + (현재 칠 채팅 길이) + (시스템 프롬프트 넉넉하게 800자 버퍼)
+        const totalChars = historyLength + input.length + 800;
+
+        // 💡 야매 공식: 한글은 대충 1글자 = 1.2~1.5 토큰 정도 먹음. (넉넉하게 1.5로 계산)
+        const estimatedTokens = totalChars * 1.5;
+        setCurrentCost(estimatedTokens * pricePerToken);
+    }, [input, messages, contextLimit, selectedModel, selectedProvider, availableModels]);
+
+
     const loadPersonas = async () => {
         try {
             const res = await axios.get('http://localhost:5000/api/persona/list');
@@ -122,16 +139,14 @@ const ChatRoom = ({ sessionId }) => {
     };
 
     useEffect(() => {
-        if (showSettings && personasList.length === 0) {
-            loadPersonas();
-        }
+        if (showSettings && personasList.length === 0) loadPersonas();
     }, [showSettings]);
 
     useEffect(() => {
         if (editingIndex === null) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, editingIndex]);
 
-    // 3️⃣ 일반 함수들 선언
+    // 3️⃣ 통신 함수들
     const sendMessage = async () => {
         if (!input.trim() || isLoading) return;
         const userMsg = { role: 'user', content: input };
@@ -144,14 +159,12 @@ const ChatRoom = ({ sessionId }) => {
                 message: userMsg.content,
                 temperature: Number(temperature),
                 maxTokens: Number(maxTokens),
-                model: selectedModel // 🚨 추가!
+                model: selectedModel,
+                contextLimit: Number(contextLimit) // 🚨 백엔드에 기억 한도 통보!
             });
             setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }]);
-        } catch (error) {
-            console.error('❌ 전송 좆됨:', error);
-        } finally {
-            setIsLoading(false);
-        }
+        } catch (error) { console.error('❌ 전송 좆됨:', error); }
+        finally { setIsLoading(false); }
     };
 
     const handleReroll = async () => {
@@ -161,10 +174,12 @@ const ChatRoom = ({ sessionId }) => {
             const res = await axios.post(`http://localhost:5000/api/session/${sessionId}/reroll`, {
                 temperature: Number(temperature),
                 maxTokens: Number(maxTokens),
-                model: selectedModel // 🚨 추가!
+                model: selectedModel,
+                contextLimit: Number(contextLimit) // 🚨 리롤 칠 때도 한도 통보!
             });
             if (res.data.success) setMessages(res.data.messages);
-        } catch (error) { alert('리롤 실패 ㅆㅂ'); } finally { setIsLoading(false); }
+        } catch (error) { alert('리롤 실패 ㅆㅂ'); }
+        finally { setIsLoading(false); }
     };
 
     const handleDelete = async (index) => {
@@ -207,78 +222,53 @@ const ChatRoom = ({ sessionId }) => {
         } catch (error) { console.error('❌ 페르소나 변경 좆됨:', error); }
     };
 
-    // ➕ 새 페르소나 생성해서 서버로 쏘기
     const handlePersonaCreate = async () => {
-        if (!newPersonaName.trim() || !newPersonaDesc.trim()) {
-            alert('이름이랑 설정 다 적어라 멍청아');
-            return;
-        }
+        if (!newPersonaName.trim() || !newPersonaDesc.trim()) return alert('이름이랑 설정 다 적어라 멍청아');
         try {
-            const res = await axios.post('http://localhost:5000/api/persona/create', {
-                name: newPersonaName,
-                description: newPersonaDesc
-            });
+            const res = await axios.post('http://localhost:5000/api/persona/create', { name: newPersonaName, description: newPersonaDesc });
             if (res.data.success) {
                 alert(`새 프로필 [${newPersonaName}] 런칭 완료!`);
-                setNewPersonaName('');
-                setNewPersonaDesc('');
-                setIsCreatingPersona(false);
-                await loadPersonas(); // 리스트 갱신해서 콤보박스에 바로 뜨게 만들기!
+                setNewPersonaName(''); setNewPersonaDesc(''); setIsCreatingPersona(false);
+                await loadPersonas();
             }
-        } catch (error) {
-            console.error(error);
-            alert('프로필 만드는데 서버 터짐 ㅆㅂ');
-        }
+        } catch (error) { alert('프로필 만드는데 서버 터짐 ㅆㅂ'); }
     };
 
-    // 🛠️ 페르소나 수정 저장 버튼 눌렀을 때
     const handlePersonaUpdate = async () => {
         if (!personaEditName.trim() || !personaEditDesc.trim()) return;
         try {
-            const res = await axios.put(`http://localhost:5000/api/persona/${currentPersonaId}`, {
-                name: personaEditName,
-                description: personaEditDesc
-            });
+            const res = await axios.put(`http://localhost:5000/api/persona/${currentPersonaId}`, { name: personaEditName, description: personaEditDesc });
             if (res.data.success) {
-                alert('내 프로필 수정 완!');
-                setIsEditingPersona(false);
-                await loadPersonas(); // 목록 새로고침 빡!
+                alert('내 프로필 수정 완!'); setIsEditingPersona(false); await loadPersonas();
             }
         } catch (error) { alert('프로필 수정 실패 ㅆㅂ'); }
     };
 
-    // 🗑️ 페르소나 삭제 버튼 눌렀을 때
     const handlePersonaDelete = async () => {
         if (!window.confirm('진짜 이 프로필 영구 삭제함? 관련 대화방 터질 수도 있음.')) return;
         try {
             const res = await axios.delete(`http://localhost:5000/api/persona/${currentPersonaId}`);
             if (res.data.success) {
-                alert('프로필 찢어버림.');
-                setCurrentPersonaId('');
-                setIsEditingPersona(false);
-                await loadPersonas(); // 목록 새로고침 빡!
+                alert('프로필 찢어버림.'); setCurrentPersonaId(''); setIsEditingPersona(false); await loadPersonas();
             }
         } catch (error) { alert('프로필 삭제 실패 ㅆㅂ'); }
     };
 
-    // 🧠 스마트 메모리 설정 DB에 빵 쏘기
     const handleMemorySave = async () => {
         try {
-            const res = await axios.put(`http://localhost:5000/api/session/${sessionId}/memory`, {
-                summaryInterval: Number(summaryInterval),
-                summaryPrompt,
-                memorySummary
-            });
+            const res = await axios.put(`http://localhost:5000/api/session/${sessionId}/memory`, { summaryInterval: Number(summaryInterval), summaryPrompt, memorySummary });
             if (res.data.success) alert('기억력 세팅 뇌에 박아넣음 완!');
-        } catch (error) {
-            alert('메모리 저장 좆됨 ㅆㅂ');
-        }
+        } catch (error) { alert('메모리 저장 좆됨 ㅆㅂ'); }
     };
 
-    // 4️⃣ 조건부 렌더링(early return)은 반드시 모든 훅 선언이 다 끝난 여기서 해야 함!!
-    if (!sessionId) {
-        return <div className="chat-container"><div className="chat-header">왼쪽에서 채팅방 골라라 파트너</div></div>;
-    }
+    const handleUserNoteSave = async () => {
+        try {
+            const res = await axios.put(`http://localhost:5000/api/session/${sessionId}/usernote`, { userNote });
+            if (res.data.success) alert('유저 노트 뇌리에 박아넣음 완!');
+        } catch (error) { alert('유저 노트 저장 좆됨 ㅆㅂ'); }
+    };
+
+    if (!sessionId) return <div className="chat-container"><div className="chat-header">왼쪽에서 채팅방 골라라 파트너</div></div>;
 
     // 5️⃣ 진짜 화면 렌더링
     return (
@@ -296,27 +286,25 @@ const ChatRoom = ({ sessionId }) => {
                     {activeVisualUrl && (
                         <div style={{ width: '100%', height: '220px', background: `#111 url(${activeVisualUrl}) center/cover no-repeat`, borderBottom: '1px solid #3f3f4e', flexShrink: 0 }} />
                     )}
+
+                    {roomGuide && (
+                        <div className="room-guide-banner">
+                            <span style={{ color: '#ffe600', fontWeight: 'bold', marginRight: '8px' }}>📢 제작자 가이드:</span>
+                            {roomGuide}
+                        </div>
+                    )}
+
                     <div className="chat-messages">
                         {messages.map((msg, index) => {
-                            // 💡 화면에 말풍선 띄울 땐 흉측한 시스템 태그 텍스트 다 날려버림!
                             const displayContent = msg.content.replace(/\|\|asset_(tag|url):.*?\|\|/g, '').trim();
+                            const turnNumber = messages.slice(0, index + 1).filter(m => m.role === 'assistant').length;
 
                             return (
                                 <div key={index} className={`bubble-wrapper ${msg.role}`}>
-                                    <div className="msg-actions">
-                                        <button className="action-btn edit-btn" onClick={() => handleEditStart(index, msg.content)}>✏️</button>
 
-                                        {/* 🚨 마지막 턴이고 AI 메시지일 때만 리롤 버튼(🎲) 띄워주기 */}
-                                        {msg.role === 'assistant' && index === messages.length - 1 && (
-                                            <button className="action-btn" onClick={handleReroll} title="리롤(재생성)">🎲</button>
-                                        )}
-
-                                        <button className="action-btn delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
-                                    </div>
-
+                                    {/* 💬 1. 말풍선 본체 (먼저 렌더링해서 위에 띄움) */}
                                     {editingIndex === index ? (
                                         <div className={`bubble ${msg.role}`} style={{ width: '100%' }}>
-                                            {/* 수정 창에서는 쌩 텍스트(editContent) 그대로 보임 */}
                                             <textarea className="edit-textarea" rows="4" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
                                             <div className="edit-actions">
                                                 <button className="save-btn" onClick={() => handleEditSave(index)}>저장</button>
@@ -325,9 +313,7 @@ const ChatRoom = ({ sessionId }) => {
                                         </div>
                                     ) : (
                                         <div className={`bubble ${msg.role}`}>
-                                            {/* 🚨 쌩 텍스트 날려버리고 마크다운 렌더러로 덮어쓰기! */}
                                             <ReactMarkdown>{displayContent}</ReactMarkdown>
-
                                             {msg.swipes && msg.swipes.length > 1 && (
                                                 <div className="swipe-controls">
                                                     <button className="swipe-btn" onClick={() => handleSwipe(index, -1)}>◀</button>
@@ -337,6 +323,21 @@ const ChatRoom = ({ sessionId }) => {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* ⚙️ 2. 액션 버튼 그룹 (말풍선 밑으로 이사 옴!) */}
+                                    <div className="msg-actions">
+                                        {msg.role === 'assistant' && (
+                                            <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'bold', alignSelf: 'center', marginRight: '8px' }}>
+                                                #{turnNumber}
+                                            </span>
+                                        )}
+                                        <button className="action-btn edit-btn" onClick={() => handleEditStart(index, msg.content)}>✏️</button>
+                                        {msg.role === 'assistant' && index === messages.length - 1 && (
+                                            <button className="action-btn" onClick={handleReroll} title="리롤(재생성)">🎲</button>
+                                        )}
+                                        <button className="action-btn delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
+                                    </div>
+
                                 </div>
                             );
                         })}
@@ -344,14 +345,24 @@ const ChatRoom = ({ sessionId }) => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="chat-input-area">
+                    <div className="chat-input-area" style={{ position: 'relative' }}>
                         <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="야, 할 말 쳐봐..." disabled={isLoading} />
-                        <button onClick={sendMessage} disabled={isLoading}>전송</button>
+
+                        {/* 🚨 [신규 4] 전송 버튼에 실시간 예상 비용 띄우기! */}
+                        <button onClick={sendMessage} disabled={isLoading} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '1rem' }}>전송</span>
+                            {currentCost > 0 && (
+                                <span style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '-2px' }}>
+                                    (예상 ${currentCost.toFixed(5)})
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 {showSettings && (
                     <div className="chat-settings-sidebar">
+                        {/* 모델 선택 구역 */}
                         <div className="setting-section">
                             <label>🏢 1. 제조사 선택</label>
                             <select
@@ -359,7 +370,6 @@ const ChatRoom = ({ sessionId }) => {
                                 onChange={(e) => {
                                     const newProvider = e.target.value;
                                     setSelectedProvider(newProvider);
-                                    // 💡 잼스의 센스: 제조사 바꿨을 때, 에러 안 나게 그 제조사의 첫 번째 모델로 자동 세팅해 줌!
                                     if (availableModels[newProvider] && availableModels[newProvider].length > 0) {
                                         setSelectedModel(availableModels[newProvider][0].id);
                                     }
@@ -395,21 +405,125 @@ const ChatRoom = ({ sessionId }) => {
                             </select>
                         </div>
 
-                        <div className="setting-section">
-                            <label>🔥 똘끼 (Temperature)</label>
-                            <input
-                                type="range" min="0" max="0.8" step="0.1"
-                                value={temperature} onChange={(e) => setTemperature(e.target.value)} disabled={isLoading}
+                        {/* 🚨 [신규 5] 기억력 조절 슬라이더 UI (프롬프트 다이어트용) */}
+                        <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
+                            <label>✂️ 최근 대화 기억 한도 (Context Window)</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                <input
+                                    type="range" min="1" max="50" step="1"
+                                    value={contextLimit} onChange={(e) => setContextLimit(e.target.value)}
+                                    disabled={isLoading}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#aaa' }}>
+                                    <span>절약 모드 (1턴)</span>
+                                    <span style={{ color: '#ffe600', fontWeight: 'bold' }}>{contextLimit}턴 기억</span>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#888' }}>
+                                    * 한도를 줄이면 옛날 대화는 까먹지만 비용(토큰)이 획기적으로 줄어듭니다.
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 유저 노트 UI */}
+                        <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
+                            <label>📝 유저 시크릿 노트 (이 방 전용 설정)</label>
+                            <textarea
+                                rows="4" value={userNote} onChange={(e) => setUserNote(e.target.value)}
+                                placeholder="예: 지금 주인공은 부상을 당해 왼팔을 쓸 수 없음, 혹은 내 페르소나의 숨겨진 과거사 등..."
+                                style={{ width: '100%', padding: '8px', backgroundColor: '#1e1e24', color: '#fff', border: '1px solid #3f3f4e', fontSize: '0.8rem', outline: 'none', borderRadius: '4px' }}
                             />
+                            <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem', width: '100%', marginTop: '5px' }} onClick={handleUserNoteSave}>
+                                유저 노트 동기화 빡!
+                            </button>
+                        </div>
+
+                        {/* 스마트 메모리 구역 */}
+                        <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
+                            <label>🧠 스마트 메모리 (오토 요약)</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa', fontSize: '0.8rem' }}>
+                                <span>요약 주기 (턴)</span>
+                                <input
+                                    type="number" min="0" max="50" value={summaryInterval}
+                                    onChange={(e) => setSummaryInterval(e.target.value)}
+                                    style={{ width: '50px', backgroundColor: '#1e1e24', color: 'white', border: '1px solid #3f3f4e' }}
+                                />
+                            </div>
+                            <textarea
+                                rows="2" value={summaryPrompt} onChange={(e) => setSummaryPrompt(e.target.value)}
+                                placeholder="어떻게 요약할지 지시어 입력 (예: 감정선 위주로 요약해라)"
+                                style={{ width: '100%', padding: '8px', backgroundColor: '#1e1e24', color: 'white', border: '1px solid #3f3f4e', fontSize: '0.8rem', outline: 'none' }}
+                            />
+                            <label style={{ marginTop: '10px', color: '#888' }}>현재 뇌에 박힌 요약본 (직접 수정 가능)</label>
+                            <textarea
+                                rows="4" value={memorySummary} onChange={(e) => setMemorySummary(e.target.value)}
+                                placeholder="현재 저장된 요약 내용이 없습니다."
+                                style={{ width: '100%', padding: '8px', backgroundColor: 'rgba(0,0,0,0.2)', color: '#ffe600', border: '1px solid #3f3f4e', fontSize: '0.8rem', outline: 'none' }}
+                            />
+                            <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem', width: '100%' }} onClick={handleMemorySave}>
+                                메모리 업데이트 빡!
+                            </button>
+                        </div>
+
+                        {/* 페르소나 관리 구역 */}
+                        <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
+                            <label>🎭 내 페르소나 관리</label>
+                            <div className="persona-control-group">
+                                <select
+                                    className="persona-select" value={currentPersonaId}
+                                    onChange={(e) => {
+                                        handlePersonaChange(e);
+                                        setIsEditingPersona(false); setIsCreatingPersona(false);
+                                    }}
+                                >
+                                    <option value="">캐릭터 선택</option>
+                                    {personasList.map(p => (<option key={p._id} value={p._id}>{p.name}</option>))}
+                                </select>
+                                <div className="persona-btn-row">
+                                    <button className="persona-mini-btn edit" style={{ backgroundColor: '#ffe600', color: '#000' }} onClick={() => { setIsCreatingPersona(!isCreatingPersona); setIsEditingPersona(false); }}>
+                                        {isCreatingPersona ? '취소' : '➕ 새 프로필'}
+                                    </button>
+                                    {currentPersonaId && !isCreatingPersona && (
+                                        <>
+                                            <button className="persona-mini-btn edit" onClick={() => {
+                                                const active = personasList.find(p => p._id === currentPersonaId);
+                                                setPersonaEditName(active?.name || ''); setPersonaEditDesc(active?.description || '');
+                                                setIsEditingPersona(!isEditingPersona);
+                                            }}>
+                                                {isEditingPersona ? '취소' : '✏️ 수정'}
+                                            </button>
+                                            <button className="persona-mini-btn delete" onClick={handlePersonaDelete}>🗑️ 삭제</button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {isCreatingPersona && (
+                                <div className="persona-edit-form" style={{ border: '1px solid #ffe600' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#ffe600', fontWeight: 'bold' }}>✨ 신규 페르소나 등록</span>
+                                    <input type="text" value={newPersonaName} onChange={(e) => setNewPersonaName(e.target.value)} placeholder="프로필 이름 (예: 천재 해커 파트너)" />
+                                    <textarea rows="3" value={newPersonaDesc} onChange={(e) => setNewPersonaDesc(e.target.value)} placeholder="나이, 성격, 외모 설정을 디테일하게 치셈..." />
+                                    <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem' }} onClick={handlePersonaCreate}>프로필 생성 빡!</button>
+                                </div>
+                            )}
+
+                            {isEditingPersona && (
+                                <div className="persona-edit-form">
+                                    <input type="text" value={personaEditName} onChange={(e) => setPersonaEditName(e.target.value)} placeholder="프로필 이름" />
+                                    <textarea rows="3" value={personaEditDesc} onChange={(e) => setPersonaEditDesc(e.target.value)} placeholder="상세 설정 기입..." />
+                                    <button className="save-btn" style={{ padding: '6px', fontSize: '0.8rem' }} onClick={handlePersonaUpdate}>프로필 변경사항 저장</button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="setting-section" style={{ borderTop: '1px solid #3f3f4e', paddingTop: '15px' }}>
+                            <label>🔥 똘끼 (Temperature)</label>
+                            <input type="range" min="0" max="0.8" step="0.1" value={temperature} onChange={(e) => setTemperature(e.target.value)} disabled={isLoading} />
                             <div className="setting-value">{temperature}</div>
                         </div>
 
                         <div className="setting-section">
                             <label>📝 최대 길이 (Max Tokens)</label>
-                            <input
-                                type="range" min="100" max="5000" step="100"
-                                value={maxTokens} onChange={(e) => setMaxTokens(e.target.value)} disabled={isLoading}
-                            />
+                            <input type="range" min="100" max="5000" step="100" value={maxTokens} onChange={(e) => setMaxTokens(e.target.value)} disabled={isLoading} />
                             <div className="setting-value">{maxTokens}</div>
                         </div>
                     </div>
@@ -419,4 +533,4 @@ const ChatRoom = ({ sessionId }) => {
     );
 };
 
-export default ChatRoom;    
+export default ChatRoom;
