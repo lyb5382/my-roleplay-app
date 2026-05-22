@@ -2,21 +2,21 @@
     display: flex;
     flex-direction: column;
     height: calc(100vh - 60px);
-    /* 헤더 제외 높이 꽉 채움 */
     width: 100%;
     background-color: #1e1e24;
     color: #fff;
     overflow: hidden;
-    /* 전체 스크롤 방지 */
+    font-family: 'Pretendard', sans-serif;
 }
 
-/* 스튜디오 상단 전용 네비게이션 */
+/* 스튜디오 네비게이션 탭 */
 .studio-nav {
     display: flex;
     background-color: #2b2b36;
     border-bottom: 2px solid #3f3f4e;
     padding: 0 20px;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .studio-nav-btn {
@@ -40,7 +40,6 @@
     border-bottom: 3px solid #ffe600;
 }
 
-/* 메인 작업 영역 (좌측 폼 + 우측 테스터) */
 .studio-work-area {
     display: flex;
     flex: 1;
@@ -49,15 +48,155 @@
 
 .studio-form-scroll {
     flex: 1;
-    padding: 30px;
     overflow-y: auto;
+    width: 100%;
 }
 
-/* 샌드박스 테스터 (우측 고정) */
-.sandbox-tester {
-    width: 350px;
-    background-color: #1a1a1f;
-    border-left: 2px solid #3f3f4e;
+/* 🚨 기존 .tab-content 덮어쓰기 (여기서 폼 내용을 중앙 정렬함!) */
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* 폼 요소 (입력창 존나 못생긴 거 수술 완!) */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: #ffe600;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #111;
+    /* 더 어두운 배경으로 입체감 줌 */
+    color: #fff;
+    border: 1px solid #3f3f4e;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+/* 포커스 됐을 때 간지나게 노란 테두리 */
+.form-group input[type="text"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #ffe600;
+}
+
+.form-group textarea {
+    resize: vertical;
+    /* 위아래로만 조절 가능하게 */
+    min-height: 100px;
+}
+
+/* 추가/등록 버튼들 */
+.studio-add-btn {
+    background-color: rgba(255, 230, 0, 0.1);
+    color: #ffe600;
+    border: 1px dashed #ffe600;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.studio-add-btn:hover {
+    background-color: rgba(255, 230, 0, 0.2);
+}
+
+/* 카드 스타일들 */
+.prologue-card,
+.keyword-card {
+    background-color: #2b2b36;
+    border: 1px solid #3f3f4e;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.keyword-card.default-asset {
+    border-color: #ffe600;
+}
+
+.asset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.delete-asset-btn {
+    background-color: #ff4d4d;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.priority-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ffe600;
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.help-text {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-radius: 6px;
+    border-left: 3px solid #ffe600;
+}
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.toggle-group label {
+    color: #aaa;
+    cursor: pointer;
+}
+
+/* 샌드박스 테스터 (테스트 탭에서만 화면 꽉 차게 변경!) */
+.sandbox-tester.full-width {
+    width: 100%;
+    border-left: none;
+    /* 전체화면이니까 왼쪽 테두리 뺌 */
     display: flex;
     flex-direction: column;
 }
@@ -71,31 +210,23 @@
     text-align: center;
 }
 
-/* 탭 내부 스타일들 */
-.tab-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+/* 스튜디오 폼 스크롤바 깎기 */
+.studio-form-scroll::-webkit-scrollbar {
+    width: 8px;
 }
 
-.prologue-card,
-.keyword-card {
-    background-color: #2b2b36;
-    border: 1px solid #3f3f4e;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 10px;
-    position: relative;
+.studio-form-scroll::-webkit-scrollbar-track {
+    background: #1e1e24;
+    /* 배경색이랑 똑같이 맞춰서 숨김 */
 }
 
-.priority-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
+.studio-form-scroll::-webkit-scrollbar-thumb {
+    background: #3f3f4e;
+    /* 버튼색이랑 맞춘 다크그레이 */
+    border-radius: 10px;
+}
+
+/* 스크롤바에 마우스 올리면 잼스 시그니처 옐로우로 발광함 ㅋㅋㅋ */
+.studio-form-scroll::-webkit-scrollbar-thumb:hover {
     background: #ffe600;
-    color: #000;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
 }

@@ -31,12 +31,11 @@ const ChatRoom = ({ sessionId }) => {
     const [selectedModel, setSelectedModel] = useState('qwen/qwen-2.5-72b-instruct');
     const [userNote, setUserNote] = useState('');
     const [roomGuide, setRoomGuide] = useState('');
-
+    const [isGuideVisible, setIsGuideVisible] = useState(true);
     // 🚨 [신규 1] 최근 턴 몇 개 기억할 건지 조절하는 훅 (기본 15턴 = 메시지 30개)
     const [contextLimit, setContextLimit] = useState(15);
     // 🚨 [신규 2] 실시간 예상 비용 저장하는 훅
     const [currentCost, setCurrentCost] = useState(0);
-
     const messagesEndRef = useRef(null);
 
     // 2️⃣ useEffect: 방 기록 불러오기
@@ -288,10 +287,33 @@ const ChatRoom = ({ sessionId }) => {
                     )}
 
                     {roomGuide && (
-                        <div className="room-guide-banner">
-                            <span style={{ color: '#ffe600', fontWeight: 'bold', marginRight: '8px' }}>📢 제작자 가이드:</span>
-                            {roomGuide}
-                        </div>
+                        isGuideVisible ? (
+                            <div className="room-guide-banner">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ color: '#ccc', wordBreak: 'keep-all', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                                        <span style={{ color: '#ffe600', fontWeight: 'bold', marginRight: '8px' }}>📢 제작자 가이드:</span>
+                                        {/* 가이드 내용이 길면 보기 좋게 한 줄 띄움 */}
+                                        <div style={{ marginTop: '5px' }}>{roomGuide}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsGuideVisible(false)}
+                                        style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', padding: '0 0 0 15px', flexShrink: 0 }}
+                                    >
+                                        ▲ 닫기
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* 닫혔을 때는 중앙에 쪼끄만하게 다시 여는 알약 버튼만 띄움 */
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+                                <button
+                                    onClick={() => setIsGuideVisible(true)}
+                                    style={{ background: 'rgba(255, 230, 0, 0.05)', border: '1px solid rgba(255, 230, 0, 0.3)', color: '#ffe600', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 15px', borderRadius: '20px', transition: 'all 0.2s' }}
+                                >
+                                    ▼ 가이드 펼치기
+                                </button>
+                            </div>
+                        )
                     )}
 
                     <div className="chat-messages">

@@ -157,4 +157,21 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// 🗑️ 캐릭터 카드 영구 삭제 (조물주의 심판)
+router.delete('/:id', async (req, res) => {
+    try {
+        const deletedChar = await CharacterCard.findByIdAndDelete(req.params.id);
+
+        if (!deletedChar) {
+            return res.status(404).json({ success: false, error: '이미 삭제됐거나 없는 캐릭터임' });
+        }
+
+        console.log(`🔥 캐릭터 [${deletedChar.title}] 영구 삭제 완료!`);
+        res.json({ success: true, message: '캐릭터 찢어버림 완.' });
+    } catch (error) {
+        console.error('❌ 캐릭터 삭제 중 좆됨:', error);
+        res.status(500).json({ success: false, error: '삭제하다 서버 터짐' });
+    }
+});
+
 module.exports = router;

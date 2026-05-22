@@ -233,217 +233,189 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
             </div>
 
             <div className="studio-work-area">
-                <div className="studio-form-scroll">
 
-                    {/* 1. 메인 탭 */}
-                    {activeTab === 'main' && (
-                        <div className="tab-content">
-                            <h3>📝 기본 메타데이터</h3>
-                            <div className="form-group"><label>작품 이름</label><input type="text" name="title" value={characterData.title} onChange={handleChange} /></div>
-                            <div className="form-group"><label>한 줄 요약</label><input type="text" name="summary" value={characterData.summary} onChange={handleChange} /></div>
+                {/* 🚨 테스트 탭이 아닐 때만 폼 스크롤 구역을 렌더링! */}
+                {activeTab !== 'test' && (
+                    <div className="studio-form-scroll">
 
-                            {/* 🚨 2단 필터링 적용된 권장 AI 뇌 세팅 구역! */}
-                            <div className="form-group">
-                                <label>🏢 1. 제조사 선택 (권장 모델 지정용)</label>
-                                <select
-                                    value={selectedProvider}
-                                    onChange={(e) => {
-                                        const newProvider = e.target.value;
-                                        setSelectedProvider(newProvider);
-                                        // 💡 제조사 바꿀 때, 해당 제조사의 첫 번째 모델을 defaultModel로 자동 세팅!
-                                        if (availableModels[newProvider] && availableModels[newProvider].length > 0) {
-                                            const firstModelId = availableModels[newProvider][0].id;
-                                            setCharacterData(prev => ({ ...prev, defaultModel: firstModelId }));
-                                        }
-                                    }}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: '#1e1e24', color: '#fff', border: '1px solid #3f3f4e', borderRadius: '6px', outline: 'none', fontWeight: 'bold', marginBottom: '15px' }}
-                                    disabled={Object.keys(availableModels).length === 0}
-                                >
-                                    {Object.keys(availableModels).length > 0 ? (
-                                        Object.keys(availableModels).sort().map(provider => (
-                                            <option key={provider} value={provider}>{provider}</option>
-                                        ))
-                                    ) : (
-                                        <option>로딩 중...</option>
-                                    )}
-                                </select>
+                        {/* 1. 메인 탭 */}
+                        {activeTab === 'main' && (
+                            <div className="tab-content">
+                                <h3>📝 기본 메타데이터</h3>
+                                <div className="form-group"><label>작품 이름</label><input type="text" name="title" value={characterData.title} onChange={handleChange} placeholder="작품 이름을 입력하세요..." /></div>
+                                <div className="form-group"><label>한 줄 요약</label><input type="text" name="summary" value={characterData.summary} onChange={handleChange} placeholder="작품을 한 줄로 소개하세요..." /></div>
 
-                                <label>🧠 2. AI 뇌 교체 (권장 모델 최종 선택)</label>
-                                <select
-                                    name="defaultModel" // 🚨 name 속성 살려둠 (handleChange용)
-                                    value={characterData.defaultModel} // 🚨 선택된 값은 characterData.defaultModel 바라보게!
-                                    onChange={handleChange}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: '#1e1e24', color: '#ffe600', border: '1px solid #3f3f4e', borderRadius: '6px', outline: 'none', fontWeight: 'bold' }}
-                                    disabled={!availableModels[selectedProvider]}
-                                >
-                                    {availableModels[selectedProvider] ? (
-                                        availableModels[selectedProvider].map((m) => (
-                                            <option key={m.id} value={m.id} style={{ color: 'white' }}>
-                                                {m.name} (입력: ${Number(m.pricing?.prompt || 0).toFixed(5)})
-                                            </option>
-                                        ))
-                                    ) : (
-                                        <option>제조사를 먼저 고르라고 ㅆㅂ</option>
-                                    )}
-                                </select>
-                            </div>
-
-                            <div className="form-group"><label>상세 설명 작성</label><textarea name="description" rows="5" value={characterData.description} onChange={handleChange} /></div>
-                            <div className="form-group"><label>썸네일 등록 (URL)</label><input type="text" name="thumbnailUrl" value={characterData.thumbnailUrl} onChange={handleChange} /></div>
-                        </div>
-                    )}
-
-                    {/* 2. 프롬프트 탭 */}
-                    {activeTab === 'prompt' && (
-                        <div className="tab-content">
-                            <h3>🧠 프롬프트 코어</h3>
-                            <div className="form-group"><label>시스템 프롬프트 (무제한)</label><textarea name="systemPrompt" rows="15" value={characterData.systemPrompt} onChange={handleChange} /></div>
-                            <div className="toggle-group">
-                                <input type="checkbox" id="gl" checked={characterData.useGuideline} onChange={(e) => setCharacterData({ ...characterData, useGuideline: e.target.checked })} />
-                                <label htmlFor="gl">탈옥 방지 '절대 규칙' 활성화</label>
-                            </div>
-                            {characterData.useGuideline && <textarea name="guideline" rows="5" value={characterData.guideline} onChange={handleChange} placeholder="AI가 절대 어기면 안 되는 규칙..." />}
-                        </div>
-                    )}
-
-                    {/* 3. 프롤로그 탭 */}
-                    {activeTab === 'prologue' && (
-                        <div className="tab-content">
-                            <h3>🎭 멀티 프롤로그 (최대 3개)</h3>
-                            {characterData.prologues.map((p, i) => (
-                                <div key={i} className="prologue-card">
-                                    <h4>프롤로그 #{i + 1}</h4>
-                                    <div className="form-group"><label>프롤로그 타이틀</label><input type="text" value={p.title} onChange={(e) => handlePrologueChange(i, 'title', e.target.value)} /></div>
-                                    <div className="form-group"><label>플레이 가이드</label><input type="text" value={p.guide} onChange={(e) => handlePrologueChange(i, 'guide', e.target.value)} /></div>
-                                    <div className="form-group"><label>초기 상황 설명 (프롤로그 본문)</label><textarea rows="5" value={p.description} onChange={(e) => handlePrologueChange(i, 'description', e.target.value)} /></div>
+                                <div className="form-group">
+                                    <label>🏢 1. 제조사 선택 (권장 모델 지정용)</label>
+                                    <select
+                                        value={selectedProvider}
+                                        onChange={(e) => {
+                                            const newProvider = e.target.value;
+                                            setSelectedProvider(newProvider);
+                                            if (availableModels[newProvider] && availableModels[newProvider].length > 0) {
+                                                const firstModelId = availableModels[newProvider][0].id;
+                                                setCharacterData(prev => ({ ...prev, defaultModel: firstModelId }));
+                                            }
+                                        }}
+                                        disabled={Object.keys(availableModels).length === 0}
+                                    >
+                                        {Object.keys(availableModels).length > 0 ? (
+                                            Object.keys(availableModels).sort().map(provider => (
+                                                <option key={provider} value={provider}>{provider}</option>
+                                            ))
+                                        ) : (
+                                            <option>로딩 중...</option>
+                                        )}
+                                    </select>
                                 </div>
-                            ))}
-                            <button className="nav-buttons" onClick={addPrologue}>+ 프롤로그 추가</button>
-                        </div>
-                    )}
 
-                    {/* 4. 이미지 탭 */}
-                    {activeTab === 'image' && (
-                        <div className="tab-content">
-                            <h3>🖼️ 멀티 비주얼 에셋 스튜디오</h3>
-                            <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '15px' }}>
-                                * 배경, 캐릭터 표정, 특정 아이템 등 필요한 이미지를 제한 없이 등록하세요.<br />
-                                * 각 이미지의 <strong style={{ color: '#ffe600' }}>상황 설명</strong>을 자세히 적어두면, AI가 롤플레잉 도중 맥락을 분석해 알맞은 이미지를 자동으로 소환합니다.
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                {characterData.visualAssets.map((asset, index) => (
-                                    <div key={index} className="keyword-card" style={{ borderColor: asset.tag === 'default' ? '#ffe600' : '#3f3f4e' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                            <span style={{ fontWeight: 'bold', color: asset.tag === 'default' ? '#ffe600' : '#fff' }}>
-                                                📷 이미지 에셋 #{index + 1} {asset.tag === 'default' && '(메인 대표)'}
-                                            </span>
-                                            {asset.tag !== 'default' && (
-                                                <button className="nav-buttons" style={{ padding: '3px 8px', backgroundColor: '#ff4d4d', fontSize: '0.8rem' }} onClick={() => deleteAsset(index)}>
-                                                    🗑️ 이미지 제거
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                            <div className="form-group" style={{ width: '200px', marginBottom: 0 }}>
-                                                <label>이미지 이름 (태그)</label>
-                                                <input
-                                                    type="text" value={asset.tag}
-                                                    onChange={(e) => handleAssetChange(index, 'tag', e.target.value)}
-                                                    placeholder="예: angry_face" disabled={asset.tag === 'default'}
-                                                />
+                                <div className="form-group">
+                                    <label>🧠 2. AI 뇌 교체 (권장 모델 최종 선택)</label>
+                                    <select
+                                        name="defaultModel"
+                                        value={characterData.defaultModel}
+                                        onChange={handleChange}
+                                        disabled={!availableModels[selectedProvider]}
+                                    >
+                                        {availableModels[selectedProvider] ? (
+                                            availableModels[selectedProvider].map((m) => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.name} (입력: ${Number(m.pricing?.prompt || 0).toFixed(5)})
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option>제조사를 먼저 고르라고 ㅆㅂ</option>
+                                        )}
+                                    </select>
+                                </div>
+
+                                <div className="form-group"><label>상세 설명 작성</label><textarea name="description" rows="5" value={characterData.description} onChange={handleChange} placeholder="세계관과 배경을 상세히 묘사하세요..." /></div>
+                                <div className="form-group"><label>썸네일 등록 (URL)</label><input type="text" name="thumbnailUrl" value={characterData.thumbnailUrl} onChange={handleChange} placeholder="대표 썸네일 이미지 URL..." /></div>
+                            </div>
+                        )}
+
+                        {/* 2. 프롬프트 탭 */}
+                        {activeTab === 'prompt' && (
+                            <div className="tab-content">
+                                <h3>🧠 프롬프트 코어</h3>
+                                <div className="form-group"><label>시스템 프롬프트 (무제한)</label><textarea name="systemPrompt" rows="15" value={characterData.systemPrompt} onChange={handleChange} placeholder="AI가 어떻게 행동할지 지시하세요..." /></div>
+                                <div className="toggle-group">
+                                    <input type="checkbox" id="gl" checked={characterData.useGuideline} onChange={(e) => setCharacterData({ ...characterData, useGuideline: e.target.checked })} />
+                                    <label htmlFor="gl">탈옥 방지 '절대 규칙' 활성화</label>
+                                </div>
+                                {characterData.useGuideline && (
+                                    <div className="form-group">
+                                        <textarea name="guideline" rows="5" value={characterData.guideline} onChange={handleChange} placeholder="AI가 절대 어기면 안 되는 규칙..." />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 3. 프롤로그 탭 */}
+                        {activeTab === 'prologue' && (
+                            <div className="tab-content">
+                                <h3>🎭 멀티 프롤로그 (최대 3개)</h3>
+                                {characterData.prologues.map((p, i) => (
+                                    <div key={i} className="prologue-card">
+                                        <h4>프롤로그 #{i + 1}</h4>
+                                        <div className="form-group"><label>프롤로그 타이틀</label><input type="text" value={p.title} onChange={(e) => handlePrologueChange(i, 'title', e.target.value)} placeholder="루트 제목 (예: 감옥에서 시작)" /></div>
+                                        <div className="form-group"><label>플레이 가이드</label><input type="text" value={p.guide} onChange={(e) => handlePrologueChange(i, 'guide', e.target.value)} placeholder="유저에게 보여줄 지침..." /></div>
+                                        <div className="form-group"><label>초기 상황 설명 (프롤로그 본문)</label><textarea rows="5" value={p.description} onChange={(e) => handlePrologueChange(i, 'description', e.target.value)} placeholder="첫 대화로 출력될 상황 묘사..." /></div>
+                                    </div>
+                                ))}
+                                <button className="studio-add-btn" onClick={addPrologue}>➕ 프롤로그 추가</button>
+                            </div>
+                        )}
+
+                        {/* 4. 이미지 탭 */}
+                        {activeTab === 'image' && (
+                            <div className="tab-content">
+                                <h3>🖼️ 멀티 비주얼 에셋 스튜디오</h3>
+                                <p className="help-text">
+                                    * 배경, 캐릭터 표정, 아이템 이미지를 등록하세요.<br />
+                                    * 각 이미지의 <strong style={{ color: '#ffe600' }}>상황 설명</strong>을 자세히 적어두면 AI가 자동으로 불러옵니다.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {characterData.visualAssets.map((asset, index) => (
+                                        <div key={index} className={`keyword-card ${asset.tag === 'default' ? 'default-asset' : ''}`}>
+                                            <div className="asset-header">
+                                                <span>📷 이미지 에셋 #{index + 1} {asset.tag === 'default' && '(메인 대표)'}</span>
+                                                {asset.tag !== 'default' && (
+                                                    <button className="delete-asset-btn" onClick={() => deleteAsset(index)}>🗑️ 삭제</button>
+                                                )}
                                             </div>
-                                            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                                                <label>이미지 URL 링크</label>
-                                                <input
-                                                    type="text" value={asset.url}
-                                                    onChange={(e) => handleAssetChange(index, 'url', e.target.value)}
-                                                    placeholder="호스팅 서버의 이미지 URL 복붙..."
-                                                />
+                                            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                                                <div className="form-group" style={{ flex: '0 0 200px', marginBottom: 0 }}>
+                                                    <label>태그 (영문)</label>
+                                                    <input type="text" value={asset.tag} onChange={(e) => handleAssetChange(index, 'tag', e.target.value)} placeholder="예: angry" disabled={asset.tag === 'default'} />
+                                                </div>
+                                                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                                    <label>이미지 URL</label>
+                                                    <input type="text" value={asset.url} onChange={(e) => handleAssetChange(index, 'url', e.target.value)} placeholder="이미지 호스팅 주소..." />
+                                                </div>
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <label>출력 조건 (상황 설명)</label>
+                                                <input type="text" value={asset.description} onChange={(e) => handleAssetChange(index, 'description', e.target.value)} placeholder="이 이미지가 떠야 하는 상황..." />
                                             </div>
                                         </div>
-                                        <div className="form-group" style={{ marginBottom: 0 }}>
-                                            <label>이 이미지가 출력될 조건/상황 설명</label>
-                                            <input
-                                                type="text" value={asset.description}
-                                                onChange={(e) => handleAssetChange(index, 'description', e.target.value)}
-                                                placeholder="예: 주인공에게 화가 나서 소리를 지를 때"
-                                            />
+                                    ))}
+                                    <button className="studio-add-btn" onClick={addAsset}>➕ 새 이미지 등록칸 추가</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. 명령어 탭 */}
+                        {activeTab === 'command' && (
+                            <div className="tab-content">
+                                <h3>⚡ 키워드 트리거 시스템</h3>
+                                {characterData.keywords.map((k, i) => (
+                                    <div key={i} className="keyword-card">
+                                        <span className="priority-badge">{k.priority}순위</span>
+                                        <div className="form-group">
+                                            <label>트리거 키워드 (쉼표 구분)</label>
+                                            <input type="text" value={k.trigger} onChange={(e) => handleKeywordChange(i, 'trigger', e.target.value)} placeholder="예: 공격, 방어" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>발동될 프롬프트 지시어</label>
+                                            <textarea rows="3" value={k.action} onChange={(e) => handleKeywordChange(i, 'action', e.target.value)} placeholder="키워드 인식 시 AI에게 내릴 강제 명령..." />
                                         </div>
                                     </div>
                                 ))}
-                                <button className="nav-buttons" style={{ marginTop: '10px', padding: '12px' }} onClick={addAsset}>
-                                    ➕ 새로운 이미지 등록칸 추가
-                                </button>
+                                <button className="studio-add-btn" onClick={addKeyword}>➕ 명령어 추가</button>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                )}
 
-                    {/* 5. 명령어 탭 */}
-                    {activeTab === 'command' && (
-                        <div className="tab-content">
-                            <h3>⚡ 키워드 트리거 시스템</h3>
-                            {characterData.keywords.map((k, i) => (
-                                <div key={i} className="keyword-card">
-                                    <span className="priority-badge">{k.priority}순위</span>
-                                    <div className="form-group">
-                                        <label>트리거 키워드 (쉼표로 여러 개 입력 가능)</label>
-                                        <input
-                                            type="text" value={k.trigger}
-                                            onChange={(e) => handleKeywordChange(i, 'trigger', e.target.value)}
-                                            placeholder="예: 공격, 전투, 칼빵 (쉼표로 구분)"
-                                        />
+                {/* 🚨 6. 테스트 탭일 때만 샌드박스를 전체 화면으로 렌더링! */}
+                {activeTab === 'test' && (
+                    <div className="sandbox-tester full-width">
+                        <div className="sandbox-header">🧪 SANDBOX TESTER (현재 설정 기반 시뮬레이터)</div>
+                        {activeVisualUrl && (
+                            <div style={{ width: '100%', height: '300px', background: `#111 url(${activeVisualUrl}) center/cover no-repeat`, borderBottom: '1px solid #3f3f4e' }} />
+                        )}
+                        <div className="chat-messages" style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {sandboxMessages.map((msg, index) => (
+                                <div key={index} className={`bubble-wrapper ${msg.role}`} style={{ flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                    <div className={`bubble ${msg.role}`} style={{ maxWidth: '75%', backgroundColor: msg.role === 'user' ? '#ffe600' : '#2b2b36', color: msg.role === 'user' ? '#000' : '#fff', padding: '12px 16px', borderRadius: '12px' }}>
+                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
                                     </div>
-                                    <div className="form-group"><label>발동될 숨겨진 프롬프트/행동</label><textarea rows="3" value={k.action} onChange={(e) => handleKeywordChange(i, 'action', e.target.value)} /></div>
                                 </div>
                             ))}
-                            <button className="nav-buttons" onClick={addKeyword}>+ 명령어 추가</button>
+                            {isSandboxLoading && <div style={{ color: '#888', fontStyle: 'italic', paddingLeft: '10px' }}>잼스 생각 중...</div>}
                         </div>
-                    )}
-
-                    {/* 6. 테스트 탭 */}
-                    {activeTab === 'test' && (
-                        <div className="tab-content">
-                            <h3>🧪 샌드박스 테스터</h3>
-                            <p>우측 샌드박스 창에서 현재 설정으로 즉석 대화가 가능합니다.</p>
-                            <p style={{ color: '#888' }}>* 새로고침 시 테스트 대화 내역은 휘발됩니다.</p>
+                        <div className="chat-input-area" style={{ padding: '15px', background: '#2b2b36', display: 'flex' }}>
+                            <input
+                                type="text" value={sandboxInput} onChange={(e) => setSandboxInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && sendSandboxMessage()}
+                                placeholder={isSandboxLoading ? '대답 기다려라...' : '테스트 메시지 입력...'}
+                                disabled={isSandboxLoading} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#1e1e24', color: '#fff', outline: 'none' }}
+                            />
+                            <button onClick={sendSandboxMessage} disabled={isSandboxLoading} style={{ marginLeft: '10px', padding: '0 25px', borderRadius: '8px', border: 'none', background: '#ffe600', color: '#000', fontWeight: 'bold', cursor: 'pointer' }}>전송</button>
                         </div>
-                    )}
-                </div>
-
-                {/* 우측 샌드박스 테스터 */}
-                <div className="sandbox-tester">
-                    <div className="sandbox-header">SANDBOX TESTER</div>
-                    {activeVisualUrl && (
-                        <div style={{ width: '100%', height: '150px', background: `#111 url(${activeVisualUrl}) center/cover no-repeat`, borderBottom: '1px solid #3f3f4e' }} />
-                    )}
-                    <div className="chat-messages" style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
-                        {sandboxMessages.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`bubble ${msg.role}`}
-                                style={{
-                                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                    backgroundColor: msg.role === 'user' ? '#ffe600' : '#2b2b36',
-                                    color: msg.role === 'user' ? '#000' : '#fff',
-                                    maxWidth: '85%', padding: '8px 12px', borderRadius: '8px'
-                                }}
-                            >
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
-                        ))}
-                        {isSandboxLoading && <div style={{ color: '#888', fontStyle: 'italic', paddingLeft: '5px' }}>잼스 생각 중...</div>}
                     </div>
-
-                    <div className="chat-input-area" style={{ padding: '10px', background: '#2b2b36' }}>
-                        <input
-                            type="text" value={sandboxInput} onChange={(e) => setSandboxInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && sendSandboxMessage()}
-                            placeholder={isSandboxLoading ? '대답 기다려라...' : '테스트 메시지 입력...'}
-                            disabled={isSandboxLoading} style={{ fontSize: '0.85rem', padding: '8px' }}
-                        />
-                        <button onClick={sendSandboxMessage} disabled={isSandboxLoading} style={{ padding: '0 15px', fontSize: '0.85rem' }}>전송</button>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );
