@@ -466,3 +466,79 @@
 .guide-markdown-content strong {
     color: #ffe600;
 }
+
+/* *기울임 글씨* = 살짝 회색, 서술/지문 느낌 */
+.bubble em,
+.guide-markdown-content em {
+    color: #a8a8b3;
+    font-style: italic;
+    opacity: 0.9;
+}
+
+/* 유저 노란 말풍선 안에서는 너무 밝으면 안 보여서 어두운 회색 */
+.bubble.user em {
+    color: rgb(29, 29, 29);
+    opacity: 0.9;
+}
+
+/* ```코드블록``` 전체 박스 */
+.bubble pre,
+.guide-markdown-content pre {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 4px solid #ffe600;
+    border-radius: 10px;
+
+    padding: 14px 16px;
+    margin: 12px 0;
+
+    overflow-x: auto;
+    white-space: pre;
+
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+/* 코드블록 안쪽 글씨 */
+.bubble pre code,
+.guide-markdown-content pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+
+    color: #e6e6e6;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+/* `인라인 코드` */
+.bubble :not(pre)>code,
+.guide-markdown-content :not(pre)>code {
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+
+    padding: 2px 6px;
+
+    color: #ffe600;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* 유저 노란 말풍선 안의 인라인 코드 */
+.bubble.user :not(pre)>code {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.18);
+    color: #222;
+}
+
+/* 유저 노란 말풍선 안의 코드블록 */
+.bubble.user pre {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.2);
+    border-left-color: #000;
+}
+
+.bubble.user pre code {
+    color: #111;
+}
