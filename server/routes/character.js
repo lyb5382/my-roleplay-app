@@ -5,19 +5,23 @@ const CharacterCard = require('../models/CharacterCard');
 // 1. 캐릭터 카드 신규 등록 (제작자 용)
 router.post('/create', async (req, res) => {
     try {
-        const { title, summary, thumbnailUrl, systemPrompt, guideline, prologues, keywords } = req.body;
+        const { title, summary, description, defaultModel, systemPrompt, guideline, visualAssets, prologues, keywords } = req.body;
 
-        // 파워 J 파트너를 위한 최소한의 유효성 검사 (필수값 체크)
         if (!title || !systemPrompt) {
             return res.status(400).json({ success: false, error: '작품 이름이랑 코어 프롬프트는 필수야 이 양반아' });
         }
 
+        // 🚨 잼스 필터링: URL이 빈칸인 에셋은 스키마 에러 내니까 싹 다 걸러버림!
+        const validAssets = (visualAssets || []).filter(a => a.url && a.url.trim() !== '');
+
         const newCharacter = new CharacterCard({
             title,
             summary,
-            thumbnailUrl,
+            description,
+            defaultModel,
             systemPrompt,
             guideline,
+            visualAssets: validAssets, // 🚨 걸러낸 깨끗한 배열만 장전!
             prologues: prologues || [],
             keywords: keywords || []
         });
@@ -139,9 +143,16 @@ router.post('/sandbox/test', async (req, res) => {
 // 🛠️ 캐릭터 카드 수정 (조물주의 재창조)
 router.put('/:id', async (req, res) => {
     try {
+        const payload = { ...req.body };
+
+        // 🚨 잼스 필터링: 수정할 때도 마찬가지로 빈칸 URL은 쳐냄!
+        if (payload.visualAssets) {
+            payload.visualAssets = payload.visualAssets.filter(a => a.url && a.url.trim() !== '');
+        }
+
         const updatedChar = await CharacterCard.findByIdAndUpdate(
             req.params.id,
-            req.body, // 프론트에서 보낸 수정된 데이터 통째로 덮어쓰기
+            payload, // 필터링 끝난 깨끗한 데이터로 덮어쓰기
             { new: true }
         );
 

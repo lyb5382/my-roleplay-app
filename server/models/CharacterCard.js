@@ -20,6 +20,9 @@ const CharacterCardSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 CharacterCardSchema.virtual('thumbnailUrl').get(function () {
+    // 🚨 잼스 방어막: visualAssets 배열이 아예 없거나 비어있으면 뻗지 말고 걍 빈 칸 리턴해라!
+    if (!this.visualAssets || this.visualAssets.length === 0) return '';
+
     const defaultAsset = this.visualAssets.find(a => a.tag === 'default');
     return defaultAsset ? defaultAsset.url : (this.visualAssets[0]?.url || '');
 });

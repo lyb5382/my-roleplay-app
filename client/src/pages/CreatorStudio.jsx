@@ -71,7 +71,8 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                 : [{ title: '', guide: '', description: '' }],
                             keywords: char.keywords && char.keywords.length > 0
                                 ? char.keywords
-                                : [{ trigger: '', action: '', priority: 1 }]
+                                : [{ trigger: '', action: '', priority: 1 }],
+                            thumbnailUrl: char.thumbnailUrl || ''
                         });
                     }
                 } catch (error) {
@@ -242,13 +243,13 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                         {activeTab === 'main' && (
                             <div className="tab-content">
                                 <h3>📝 기본 메타데이터</h3>
-                                <div className="form-group"><label>작품 이름</label><input type="text" name="title" value={characterData.title} onChange={handleChange} placeholder="작품 이름을 입력하세요..." /></div>
-                                <div className="form-group"><label>한 줄 요약</label><input type="text" name="summary" value={characterData.summary} onChange={handleChange} placeholder="작품을 한 줄로 소개하세요..." /></div>
+                                <div className="form-group"><label>작품 이름</label><input type="text" name="title" value={characterData.title || ''} onChange={handleChange} placeholder="작품 이름을 입력하세요..." /></div>
+                                <div className="form-group"><label>한 줄 요약</label><input type="text" name="summary" value={characterData.summary || ''} onChange={handleChange} placeholder="작품을 한 줄로 소개하세요..." /></div>
 
                                 <div className="form-group">
                                     <label>🏢 1. 제조사 선택 (권장 모델 지정용)</label>
                                     <select
-                                        value={selectedProvider}
+                                        value={selectedProvider || ''}
                                         onChange={(e) => {
                                             const newProvider = e.target.value;
                                             setSelectedProvider(newProvider);
@@ -273,7 +274,7 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                     <label>🧠 2. AI 뇌 교체 (권장 모델 최종 선택)</label>
                                     <select
                                         name="defaultModel"
-                                        value={characterData.defaultModel}
+                                        value={characterData.defaultModel || ''}
                                         onChange={handleChange}
                                         disabled={!availableModels[selectedProvider]}
                                     >
@@ -289,8 +290,8 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                     </select>
                                 </div>
 
-                                <div className="form-group"><label>상세 설명 작성</label><textarea name="description" rows="5" value={characterData.description} onChange={handleChange} placeholder="세계관과 배경을 상세히 묘사하세요..." /></div>
-                                <div className="form-group"><label>썸네일 등록 (URL)</label><input type="text" name="thumbnailUrl" value={characterData.thumbnailUrl} onChange={handleChange} placeholder="대표 썸네일 이미지 URL..." /></div>
+                                <div className="form-group"><label>상세 설명 작성</label><textarea name="description" rows="5" value={characterData.description || ''} onChange={handleChange} placeholder="세계관과 배경을 상세히 묘사하세요..." /></div>
+                                <div className="form-group"><label>썸네일 등록 (URL)</label><input type="text" name="thumbnailUrl" value={characterData.thumbnailUrl || ''} onChange={handleChange} placeholder="대표 썸네일 이미지 URL..." /></div>
                             </div>
                         )}
 
@@ -298,14 +299,14 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                         {activeTab === 'prompt' && (
                             <div className="tab-content">
                                 <h3>🧠 프롬프트 코어</h3>
-                                <div className="form-group"><label>시스템 프롬프트 (무제한)</label><textarea name="systemPrompt" rows="15" value={characterData.systemPrompt} onChange={handleChange} placeholder="AI가 어떻게 행동할지 지시하세요..." /></div>
+                                <div className="form-group"><label>시스템 프롬프트 (무제한)</label><textarea name="systemPrompt" rows="15" value={characterData.systemPrompt || ''} onChange={handleChange} placeholder="AI가 어떻게 행동할지 지시하세요..." /></div>
                                 <div className="toggle-group">
                                     <input type="checkbox" id="gl" checked={characterData.useGuideline} onChange={(e) => setCharacterData({ ...characterData, useGuideline: e.target.checked })} />
                                     <label htmlFor="gl">탈옥 방지 '절대 규칙' 활성화</label>
                                 </div>
                                 {characterData.useGuideline && (
                                     <div className="form-group">
-                                        <textarea name="guideline" rows="5" value={characterData.guideline} onChange={handleChange} placeholder="AI가 절대 어기면 안 되는 규칙..." />
+                                        <textarea name="guideline" rows="5" value={characterData.guideline || ''} onChange={handleChange} placeholder="AI가 절대 어기면 안 되는 규칙..." />
                                     </div>
                                 )}
                             </div>
@@ -318,9 +319,29 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                 {characterData.prologues.map((p, i) => (
                                     <div key={i} className="prologue-card">
                                         <h4>프롤로그 #{i + 1}</h4>
-                                        <div className="form-group"><label>프롤로그 타이틀</label><input type="text" value={p.title} onChange={(e) => handlePrologueChange(i, 'title', e.target.value)} placeholder="루트 제목 (예: 감옥에서 시작)" /></div>
-                                        <div className="form-group"><label>플레이 가이드</label><input type="text" value={p.guide} onChange={(e) => handlePrologueChange(i, 'guide', e.target.value)} placeholder="유저에게 보여줄 지침..." /></div>
-                                        <div className="form-group"><label>초기 상황 설명 (프롤로그 본문)</label><textarea rows="5" value={p.description} onChange={(e) => handlePrologueChange(i, 'description', e.target.value)} placeholder="첫 대화로 출력될 상황 묘사..." /></div>
+                                        <div className="form-group"><label>프롤로그 타이틀</label><input type="text" value={p.title || ''} onChange={(e) => handlePrologueChange(i, 'title', e.target.value)} placeholder="루트 제목 (예: 감옥에서 시작)" /></div>
+
+                                        {/* 🚨 잼스 수술: 플레이 가이드 텍스트 상자로 변경 & 실시간 마크다운 프리뷰 추가 */}
+                                        <div className="form-group">
+                                            <label>플레이 가이드 (마크다운 지원)</label>
+                                            <textarea
+                                                rows="3"
+                                                value={p.guide || ''}
+                                                onChange={(e) => handlePrologueChange(i, 'guide', e.target.value)}
+                                                placeholder="유저에게 보여줄 지침 (**, *, \n 등 지원)..."
+                                            />
+                                            {/* 입력된 가이드가 있을 때만 노란 점선 상자에 미리보기 띄움! */}
+                                            {p.guide && (
+                                                <div style={{ padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px dashed #ffe600', borderRadius: '4px', marginTop: '-5px' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#ffe600', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>👁️ 마크다운 미리보기</span>
+                                                    <div style={{ color: '#ccc', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                                                        <ReactMarkdown>{p.guide.replace(/\n/g, '  \n')}</ReactMarkdown>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="form-group"><label>초기 상황 설명 (프롤로그 본문)</label><textarea rows="5" value={p.description || ''} onChange={(e) => handlePrologueChange(i, 'description', e.target.value)} placeholder="첫 대화로 출력될 상황 묘사..." /></div>
                                     </div>
                                 ))}
                                 <button className="studio-add-btn" onClick={addPrologue}>➕ 프롤로그 추가</button>
@@ -347,16 +368,16 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                                                 <div className="form-group" style={{ flex: '0 0 200px', marginBottom: 0 }}>
                                                     <label>태그 (영문)</label>
-                                                    <input type="text" value={asset.tag} onChange={(e) => handleAssetChange(index, 'tag', e.target.value)} placeholder="예: angry" disabled={asset.tag === 'default'} />
+                                                    <input type="text" value={asset.tag || ''} onChange={(e) => handleAssetChange(index, 'tag', e.target.value)} placeholder="예: angry" disabled={asset.tag === 'default'} />
                                                 </div>
                                                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                                                     <label>이미지 URL</label>
-                                                    <input type="text" value={asset.url} onChange={(e) => handleAssetChange(index, 'url', e.target.value)} placeholder="이미지 호스팅 주소..." />
+                                                    <input type="text" value={asset.url || ''} onChange={(e) => handleAssetChange(index, 'url', e.target.value)} placeholder="이미지 호스팅 주소..." />
                                                 </div>
                                             </div>
                                             <div className="form-group" style={{ marginBottom: 0 }}>
                                                 <label>출력 조건 (상황 설명)</label>
-                                                <input type="text" value={asset.description} onChange={(e) => handleAssetChange(index, 'description', e.target.value)} placeholder="이 이미지가 떠야 하는 상황..." />
+                                                <input type="text" value={asset.description || ''} onChange={(e) => handleAssetChange(index, 'description', e.target.value)} placeholder="이 이미지가 떠야 하는 상황..." />
                                             </div>
                                         </div>
                                     ))}
@@ -374,11 +395,11 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                         <span className="priority-badge">{k.priority}순위</span>
                                         <div className="form-group">
                                             <label>트리거 키워드 (쉼표 구분)</label>
-                                            <input type="text" value={k.trigger} onChange={(e) => handleKeywordChange(i, 'trigger', e.target.value)} placeholder="예: 공격, 방어" />
+                                            <input type="text" value={k.trigger || ''} onChange={(e) => handleKeywordChange(i, 'trigger', e.target.value)} placeholder="예: 공격, 방어" />
                                         </div>
                                         <div className="form-group">
                                             <label>발동될 프롬프트 지시어</label>
-                                            <textarea rows="3" value={k.action} onChange={(e) => handleKeywordChange(i, 'action', e.target.value)} placeholder="키워드 인식 시 AI에게 내릴 강제 명령..." />
+                                            <textarea rows="3" value={k.action || ''} onChange={(e) => handleKeywordChange(i, 'action', e.target.value)} placeholder="키워드 인식 시 AI에게 내릴 강제 명령..." />
                                         </div>
                                     </div>
                                 ))}
@@ -407,7 +428,7 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                         </div>
                         <div className="chat-input-area" style={{ padding: '15px', background: '#2b2b36', display: 'flex' }}>
                             <input
-                                type="text" value={sandboxInput} onChange={(e) => setSandboxInput(e.target.value)}
+                                type="text" value={sandboxInput || ''} onChange={(e) => setSandboxInput(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && sendSandboxMessage()}
                                 placeholder={isSandboxLoading ? '대답 기다려라...' : '테스트 메시지 입력...'}
                                 disabled={isSandboxLoading} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#1e1e24', color: '#fff', outline: 'none' }}

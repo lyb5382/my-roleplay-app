@@ -290,21 +290,25 @@ const ChatRoom = ({ sessionId }) => {
                         isGuideVisible ? (
                             <div className="room-guide-banner">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ color: '#ccc', wordBreak: 'keep-all', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
-                                        <span style={{ color: '#ffe600', fontWeight: 'bold', marginRight: '8px' }}>📢 제작자 가이드:</span>
-                                        {/* 가이드 내용이 길면 보기 좋게 한 줄 띄움 */}
-                                        <div style={{ marginTop: '5px' }}>{roomGuide}</div>
+
+                                    {/* 🚨 잼스 수술: 영역 꽉 잡아서 버튼 밀림 방지 & 마크다운 렌더링 빡! */}
+                                    <div style={{ flex: 1, minWidth: 0, color: '#ccc', wordBreak: 'keep-all', lineHeight: '1.5', fontSize: '0.85rem' }}>
+                                        <span style={{ color: '#ffe600', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>📢 제작자 가이드:</span>
+                                        <div className="guide-markdown-content">
+                                            <ReactMarkdown>{roomGuide.replace(/\n/g, '  \n')}</ReactMarkdown>
+                                        </div>
                                     </div>
+
+                                    {/* 🚨 절대 안 밀려나는 철벽 닫기 버튼 */}
                                     <button
                                         onClick={() => setIsGuideVisible(false)}
-                                        style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', padding: '0 0 0 15px', flexShrink: 0 }}
+                                        style={{ background: 'transparent', border: '1px solid #888', borderRadius: '4px', color: '#888', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', flexShrink: 0, marginLeft: '15px', marginTop: '2px' }}
                                     >
                                         ▲ 닫기
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            /* 닫혔을 때는 중앙에 쪼끄만하게 다시 여는 알약 버튼만 띄움 */
                             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
                                 <button
                                     onClick={() => setIsGuideVisible(true)}
@@ -318,7 +322,7 @@ const ChatRoom = ({ sessionId }) => {
 
                     <div className="chat-messages">
                         {messages.map((msg, index) => {
-                            const displayContent = msg.content.replace(/\|\|asset_(tag|url):.*?\|\|/g, '').trim();
+                            const displayContent = msg.content.replace(/\|\|asset_(tag|url):.*?\|\|/g, '').trim().replace(/\n/g, '  \n');
                             const turnNumber = messages.slice(0, index + 1).filter(m => m.role === 'assistant').length;
 
                             return (
@@ -326,8 +330,37 @@ const ChatRoom = ({ sessionId }) => {
 
                                     {/* 💬 1. 말풍선 본체 (먼저 렌더링해서 위에 띄움) */}
                                     {editingIndex === index ? (
-                                        <div className={`bubble ${msg.role}`} style={{ width: '100%' }}>
-                                            <textarea className="edit-textarea" rows="4" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
+                                        // 🚨 잼스 수술: 기존 말풍선 클래스를 그대로 써서 배경색/크기를 똑같이 유지함!
+                                        <div className={`bubble ${msg.role}`} style={{ width: '100%', flexDirection: 'column' }}>
+                                            <textarea
+                                                className="edit-textarea"
+                                                value={editContent}
+                                                autoFocus // 🚨 잼스 보너스: 수정 누르자마자 커서 빡!
+                                                onChange={(e) => {
+                                                    setEditContent(e.target.value);
+                                                    // 🚨 글자 칠 때마다 높이 자동 조절!
+                                                    e.target.style.height = 'auto';
+                                                    e.target.style.height = `${e.target.scrollHeight}px`;
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    // 🚨 단축키 1: ESC 누르면 바로 취소
+                                                    if (e.key === 'Escape') {
+                                                        handleEditCancel();
+                                                    }
+                                                    // 🚨 단축키 2: Shift + Enter는 줄바꿈, 그냥 Enter는 저장!
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault(); // 기본 엔터(줄바꿈) 방지
+                                                        handleEditSave(index); // 저장 함수 실행!
+                                                    }
+                                                }}
+                                                ref={(el) => {
+                                                    // 🚨 처음 렌더링될 때 원래 글자 길이에 맞춰서 창 높이 쫙 늘려줌!
+                                                    if (el) {
+                                                        el.style.height = 'auto';
+                                                        el.style.height = `${el.scrollHeight}px`;
+                                                    }
+                                                }}
+                                            />
                                             <div className="edit-actions">
                                                 <button className="save-btn" onClick={() => handleEditSave(index)}>저장</button>
                                                 <button className="cancel-btn" onClick={handleEditCancel}>취소</button>
@@ -367,11 +400,33 @@ const ChatRoom = ({ sessionId }) => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="chat-input-area" style={{ position: 'relative' }}>
-                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="야, 할 말 쳐봐..." disabled={isLoading} />
+                    <div className="chat-input-area" style={{ position: 'relative', alignItems: 'flex-end' }}>
 
-                        {/* 🚨 [신규 4] 전송 버튼에 실시간 예상 비용 띄우기! */}
-                        <button onClick={sendMessage} disabled={isLoading} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* 🚨 잼스 수술: 1줄짜리 input 찢어버리고 다중 줄바꿈 되는 textarea로 승급! */}
+                        <textarea
+                            value={input}
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                // 글자 많아지면 입력창 높이 자동으로 늘어나게!
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            onKeyDown={(e) => {
+                                // 🚨 Shift + Enter 누르면 줄바꿈, 그냥 Enter 누르면 전송!
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault(); // 전송할 땐 줄바꿈 방지
+                                    sendMessage();
+                                    e.target.style.height = 'auto'; // 전송 후 높이 초기화
+                                }
+                            }}
+                            placeholder="야, 할 말 쳐봐... (Shift + Enter로 줄바꿈)"
+                            disabled={isLoading}
+                            rows="1"
+                            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#1e1e24', color: '#fff', outline: 'none', resize: 'none', overflowY: 'auto', maxHeight: '150px', fontFamily: 'inherit', lineHeight: '1.5' }}
+                        />
+
+                        {/* 🚨 전송 버튼 (높이 고정 추가) */}
+                        <button onClick={() => { sendMessage(); document.querySelector('.chat-input-area textarea').style.height = 'auto'; }} disabled={isLoading} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginLeft: '10px', height: '48px' }}>
                             <span style={{ fontSize: '1rem' }}>전송</span>
                             {currentCost > 0 && (
                                 <span style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '-2px' }}>
