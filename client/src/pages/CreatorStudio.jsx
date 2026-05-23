@@ -281,7 +281,7 @@ const CreatorStudio = ({ editCharId, onGoHome }) => {
                                         {availableModels[selectedProvider] ? (
                                             availableModels[selectedProvider].map((m) => (
                                                 <option key={m.id} value={m.id}>
-                                                    {m.name} (입력: ${Number(m.pricing?.prompt || 0).toFixed(5)})
+                                                    {m.name} (입력: ${Number(m.pricing?.prompt || 0).toFixed(5)} / ₩{(Number(m.pricing?.prompt || 0) * 1400).toFixed(2)})
                                                 </option>
                                             ))
                                         ) : (

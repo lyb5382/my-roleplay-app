@@ -38,3 +38,150 @@ body,
   overflow: hidden;
   min-height: 0;
 }
+
+/* 1. 기본 배경 및 텍스트 반전 */
+.theme-light,
+.theme-light .main-body,
+.theme-light .chat-container,
+.theme-light .studio-container,
+.theme-light .sandbox-tester {
+  background-color: #f4f4f5 !important;
+  color: #111 !important;
+}
+
+/* 2. 패널, 헤더, 사이드바 등 덩어리들 하얗게 */
+.theme-light .app-header,
+.theme-light .sidebar,
+.theme-light .chat-header,
+.theme-light .chat-input-area,
+.theme-light .studio-nav,
+.theme-light .chat-settings-sidebar,
+.theme-light .prologue-card,
+.theme-light .keyword-card,
+.theme-light .sandbox-header {
+  background-color: #ffffff !important;
+  border-color: #d1d1d6 !important;
+  color: #111 !important;
+}
+
+/* 3. 입력창 및 버튼 반전 */
+.theme-light input[type="text"],
+.theme-light textarea,
+.theme-light select,
+.theme-light .persona-edit-form {
+  background-color: #ffffff !important;
+  color: #111 !important;
+  border-color: #c7c7cc !important;
+}
+
+.theme-light .chat-input-area textarea {
+  background-color: #f4f4f5 !important;
+}
+
+.theme-light input:focus,
+.theme-light textarea:focus,
+.theme-light select:focus {
+  border-color: #d4b800 !important;
+  /* 너무 쨍한 노란색 대신 톤 다운된 노란색 */
+}
+
+/* 4. 채팅 말풍선 색상 (라이트 감성) */
+.theme-light .bubble.assistant {
+  color: #222 !important;
+}
+
+.theme-light .bubble.user {
+  background-color: #ffe600 !important;
+  color: #000 !important;
+}
+
+/* AI 강조 텍스트 살짝 어둡게 (눈뽕 방지) */
+.theme-light .bubble.assistant strong {
+  color: #c2a100 !important;
+}
+
+/* 5. 로비 및 사이드바 목록 요소들 */
+.theme-light .session-item {
+  border-color: #d1d1d6 !important;
+}
+
+.theme-light .session-item:hover {
+  background-color: #e5e5ea !important;
+}
+
+.theme-light .session-item.active {
+  background-color: #ffe600 !important;
+  color: #000 !important;
+}
+
+/* 6. 아이콘/보조 텍스트 톤 다운 */
+.theme-light .header-menu-btn,
+.theme-light .action-btn {
+  color: #666 !important;
+}
+
+.theme-light .action-btn:hover {
+  color: #d4b800 !important;
+}
+
+/* 7. 안내 배너 색상 정리 */
+.theme-light .room-guide-banner {
+  color: #333 !important;
+  background-color: #fffde6 !important;
+  /* 아주 연한 노란색 배경 */
+}
+
+/* 8. 스크롤바 반전 */
+.theme-light ::-webkit-scrollbar-track {
+  background: #f4f4f5 !important;
+}
+
+.theme-light ::-webkit-scrollbar-thumb {
+  background: #c7c7cc !important;
+}
+
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: #999 !important;
+}
+
+/* 🚨 1. 라이트 모드 AI 말풍선 서술/지문 (*em*) 색깔 -> '존나 찐하게' */
+.theme-light .bubble.assistant em,
+.theme-light .guide-markdown-content em {
+  color: #444 !important;
+  /* 기존 #a8a8b3는 날아가니까 찐한 그레이로 변신! */
+}
+
+/* 🚨 2. 라이트 모드 유저(노란색) 말풍선 서술/지문 (*em*) 색깔 -> '더 연하게' */
+.theme-light .bubble.user em {
+  color: #666 !important;
+  /* 연한 검은색 메인 텍스트보다 더 연한 그레이로 처리해서 이질감 없앰 */
+}
+
+/* 🚨 3. 라이트 모드 코드블록 내부 글씨 -> '완전 검은색' */
+.theme-light .bubble pre code,
+.theme-light .guide-markdown-content pre code {
+  color: #000 !important;
+  /* 다크모드용 off-white 날려버리고 블랙 박아버림 */
+}
+
+/* 4. 코드블록 박스 배경도 살짝 더 연하게 위장술 ㅋㅋㅋ */
+.theme-light .bubble pre,
+.theme-light .guide-markdown-content pre {
+  background: #e9e9ed !important;
+}
+
+/* 1. 가이드 본문 글씨 (기존 #ccc 회색 박살내고 찐한 색으로) */
+.theme-light .room-guide-banner div {
+  color: #333 !important;
+}
+
+/* 2. '📢 제작자 가이드:' 제목 (기존 눈뽕 노란색 박살내고 찐한 머스타드색으로) */
+.theme-light .room-guide-banner span {
+  color: #b38600 !important;
+}
+
+/* 3. 우측 [▲ 닫기] 버튼도 살짝 더 또렷하게 */
+.theme-light .room-guide-banner button {
+  color: #555 !important;
+  border-color: #aaa !important;
+}

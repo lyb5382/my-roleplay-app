@@ -430,7 +430,7 @@ const ChatRoom = ({ sessionId }) => {
                             <span style={{ fontSize: '1rem' }}>전송</span>
                             {currentCost > 0 && (
                                 <span style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '-2px' }}>
-                                    (예상 ${currentCost.toFixed(5)})
+                                    (예상 ${currentCost.toFixed(5)} / 약 {(currentCost * 1400).toFixed(2)}원)
                                 </span>
                             )}
                         </button>

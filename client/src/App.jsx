@@ -10,12 +10,19 @@ function App() {
   // 화면 모드 제어: 'home' (메인) | 'chat' (채팅방) | 'creator' (제작자)
   const [currentView, setCurrentView] = useState('home');
   const [editingCharId, setEditingCharId] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
   const [currentSessionId, setCurrentSessionId] = useState(() => {
     const saved = localStorage.getItem('activeSessionId');
     // 저장된 방이 있으면 시작부터 채팅방 띄워줌
     if (saved) setCurrentView('chat');
     return saved || null;
   });
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('appTheme', newTheme);
+  };
 
   // 💬 사이드바에서 과거 채팅방 클릭했을 때
   const handleSelectSession = (id) => {
@@ -52,9 +59,9 @@ function App() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${theme === 'light' ? 'theme-light' : ''}`}>
       {/* 1. 맨 위 헤더 (제작자 모드 진입 함수도 넘겨줌) */}
-      <Header onGoHome={handleGoHome} onGoCreator={handleGoCreator} />
+      <Header onGoHome={handleGoHome} onGoCreator={handleGoCreator} theme={theme} toggleTheme={toggleTheme} />
 
       {/* 2. 아래쪽 본문 (사이드바 + 메인 컨텐츠) */}
       <div className="main-body">
