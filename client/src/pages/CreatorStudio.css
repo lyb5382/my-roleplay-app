@@ -107,6 +107,8 @@
 
 /* 추가/등록 버튼들 */
 .studio-add-btn {
+    flex-shrink: 0;
+    /* 버튼 크기 절대 안 줄어들게! */
     background-color: rgba(255, 230, 0, 0.1);
     color: #ffe600;
     border: 1px dashed #ffe600;
@@ -114,7 +116,6 @@
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s;
     width: 100%;
 }
 

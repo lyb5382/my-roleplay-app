@@ -311,6 +311,7 @@ const ChatRoom = ({ sessionId }) => {
                         ) : (
                             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
                                 <button
+                                    className="guide-toggle-btn" /* 🚨 잼스 수술: CSS로 패기 위해 이름표 추가! */
                                     onClick={() => setIsGuideVisible(true)}
                                     style={{ background: 'rgba(255, 230, 0, 0.05)', border: '1px solid rgba(255, 230, 0, 0.3)', color: '#ffe600', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 15px', borderRadius: '20px', transition: 'all 0.2s' }}
                                 >
@@ -439,6 +440,9 @@ const ChatRoom = ({ sessionId }) => {
 
                 {showSettings && (
                     <div className="chat-settings-sidebar">
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                            <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1.2rem' }}>❌</button>
+                        </div>
                         {/* 모델 선택 구역 */}
                         <div className="setting-section">
                             <label>🏢 1. 제조사 선택</label>

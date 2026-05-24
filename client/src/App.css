@@ -25,9 +25,10 @@ body,
   display: flex;
   flex: 1;
   overflow: hidden;
-  /* 여기서도 스크롤 원천 차단 */
+  /* 자식들이 여기 갇히게 함 */
+  height: calc(100vh - 60px);
+  /* 헤더 높이(60px) 제외한 공간만 쓰게 */
   min-height: 0;
-  /* Flexbox 자식들이 부모 크기 뚫고 나가는 거 억제 */
 }
 
 /* 🚨 4. 채팅방 렌더링 구역 */
@@ -36,6 +37,8 @@ body,
   display: flex;
   justify-content: center;
   overflow: hidden;
+  /* 컨텐츠가 넘쳐도 밖으로 안 삐져나감 */
+  position: relative;
   min-height: 0;
 }
 
@@ -97,7 +100,7 @@ body,
 
 /* AI 강조 텍스트 살짝 어둡게 (눈뽕 방지) */
 .theme-light .bubble.assistant strong {
-  color: #c2a100 !important;
+  color: #e6b000 !important;
 }
 
 /* 5. 로비 및 사이드바 목록 요소들 */
@@ -184,4 +187,308 @@ body,
 .theme-light .room-guide-banner button {
   color: #555 !important;
   border-color: #aaa !important;
+}
+
+/* 1. 상단 로고, 각종 라벨, 버튼 호버 텍스트들을 찐한 머스타드색으로! */
+.theme-light .header-title,
+.theme-light .form-group label,
+.theme-light .setting-section label,
+.theme-light .sandbox-header,
+.theme-light .swipe-btn,
+.theme-light .edit-btn:hover,
+.theme-light .header-menu-btn:hover {
+  color: #e6ad00 !important;
+}
+
+/* 2. 스튜디오에 있는 ➕ 추가 버튼들 (테두리 + 글씨 + 배경) */
+.theme-light .studio-add-btn {
+  color: #e6ad00 !important;
+  border-color: #e6ad00 !important;
+  background-color: rgba(230, 126, 0, 0.05) !important;
+}
+
+/* 3. 방금 이름표 달아준 [▼ 가이드 펼치기] 버튼 인라인 색상 박살내기 */
+.theme-light .guide-toggle-btn {
+  color: #e6ad00 !important;
+  border-color: rgba(230, 126, 0, 0.4) !important;
+  background-color: rgba(230, 126, 0, 0.05) !important;
+}
+
+/* 4. 스튜디오 카드 상단 노란색 뱃지 (#ffe600 -> 검은 글씨라 이건 배경색을 톤다운) */
+.theme-light .priority-badge {
+  background-color: #d4b800 !important;
+}
+
+/* 🚨 가이드 배너 본문 내 강조(strong) 및 제목(span) */
+.theme-light .room-guide-banner span,
+.theme-light .room-guide-banner strong {
+  color: #e6ad00 !important;
+}
+
+/* 1. 헤더 '제작자 스튜디오' 버튼 똥색/검은색 박살 */
+.theme-light .nav-buttons button:not(.home-btn) {
+  background-color: #f4f4f5 !important;
+  color: #333 !important;
+  border-color: #c7c7cc !important;
+}
+
+.theme-light .nav-buttons button:not(.home-btn):hover {
+  background-color: #e5e5ea !important;
+  color: #e6ad00 !important;
+}
+
+/* 2. 로비 전체 텍스트가 하얀색으로 날아가는 거 방지 */
+.theme-light .main-content>div {
+  color: #111 !important;
+}
+
+/* 3. 페르소나 선택 박스 (시커먼 배경 하얗게 표백) */
+.theme-light .main-content>div>div:first-child>div:nth-child(2) {
+  background-color: #ffffff !important;
+  border: 1px solid #c7c7cc !important;
+}
+
+/* 4. 캐릭터 카드 본체 (까만 배경 찢고 화이트 감성 그림자 추가) */
+.theme-light .main-content>div>div:nth-child(2)>div {
+  background-color: #ffffff !important;
+  border-color: #c7c7cc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 5. 카드 썸네일 (NO IMAGE) 구역 배경 및 텍스트 톤다운 */
+.theme-light .main-content>div>div:nth-child(2)>div>div:first-child {
+  background-color: #f4f4f5 !important;
+}
+
+.theme-light .main-content>div>div:nth-child(2)>div>div:first-child span {
+  color: #aaa !important;
+}
+
+.theme-light .main-content h3 {
+  color: #111 !important;
+}
+
+/* 카드 제목(h3) 바로 밑에 있는 요약글(p)만 회색으로 톤다운! */
+.theme-light .main-content h3+p {
+  color: #666 !important;
+}
+
+/* 7. 카드 내 ⚙️(수정) 버튼 시커먼 거 연한 회색으로 교체 */
+.theme-light .main-content>div>div:nth-child(2)>div button[title="캐릭터 수정"] {
+  background-color: #e5e5ea !important;
+  color: #333 !important;
+}
+
+.theme-light .main-content>div>div:nth-child(2)>div button[title="캐릭터 수정"]:hover {
+  background-color: #d1d1d6 !important;
+}
+
+/* 1. 샌드박스 AI 말풍선 (인라인 시커먼 배경 #2b2b36 찢고 하얗게!) */
+.theme-light .sandbox-tester .bubble.assistant {
+  background-color: #ffffff !important;
+  /* 채팅창 하얀 바탕과 동일하게 */
+  color: #111 !important;
+  /* 글씨도 까맣게 */
+  border: 1px solid #c7c7cc !important;
+  /* 살짝 테두리 줘서 구분되게 */
+}
+
+.theme-light .sandbox-tester .bubble.assistant em {
+  color: #464646 !important;
+}
+
+.theme-light .sandbox-tester .bubble.user em {
+  color: #444444 !important;
+}
+
+.theme-light .bubble.assistant em {
+  color: #464646 !important;
+}
+
+.theme-light .bubble.user em {
+  color: #444444 !important;
+}
+
+.theme-light .bubble.assistant,
+.theme-light .bubble.user,
+.theme-light .bubble p {
+  color: #111 !important;
+}
+
+/* 🚨 샌드박스 테스터 내의 일반 글씨도 찐하게! */
+.theme-light .sandbox-tester .bubble.assistant,
+.theme-light .sandbox-tester .bubble.user,
+.theme-light .sandbox-tester .bubble p {
+  color: #111 !important;
+}
+
+.theme-light .studio-work-area .sandbox-tester .bubble p {
+  color: #111 !important;
+  /* 씹힌 검은색 다시 강제 주입 빡! */
+}
+
+.theme-light .prologue-card>div:nth-child(3)>div:last-child {
+  background-color: #f4f4f5 !important;
+  border-color: #e6ad00 !important;
+  /* 노란색 점선을 오렌지 점선으로 */
+}
+
+/* 2. '👁️ 마크다운 미리보기' 라벨 글씨 (눈뽕 노란색 -> 오렌지 골드) */
+.theme-light .prologue-card>div:nth-child(3)>div:last-child>span {
+  color: #e6ad00 !important;
+}
+
+/* 3. 미리보기 본문 글씨 (은신술 쓰던 #ccc 찢고 찐한 검은색으로!) */
+.theme-light .prologue-card>div:nth-child(3)>div:last-child>div {
+  color: #111 !important;
+}
+
+/* 1. 모달창 바깥 배경 (너무 시커멓지 않게 투명도 조절) */
+.theme-light .main-content>div>div[style*="position: absolute"] {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* 2. 모달창 본체 박스 (시커먼 배경 하얗게 표백) */
+.theme-light .main-content>div>div[style*="position: absolute"]>div {
+  background-color: #ffffff !important;
+  border-color: #c7c7cc !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 3. 모달창 제목 (눈뽕 노란색 -> 오렌지 골드) */
+.theme-light .main-content>div>div[style*="position: absolute"] h2 {
+  color: #e6ad00 !important;
+}
+
+/* 4. 프롤로그 개별 루트 박스 배경 */
+.theme-light .main-content>div>div[style*="position: absolute"]>div>div:nth-child(2)>div {
+  background-color: #f4f4f5 !important;
+  border-color: #d1d1d6 !important;
+}
+
+/* 5. 루트 박스 내 텍스트 색상들 (제목, 가이드 라벨, 가이드 본문) */
+.theme-light .main-content>div>div[style*="position: absolute"] h3 {
+  color: #111 !important;
+}
+
+.theme-light .main-content>div>div[style*="position: absolute"] strong {
+  color: #e6ad00 !important;
+  /* [플레이 가이드] 라벨 */
+}
+
+.theme-light .main-content>div>div[style*="position: absolute"] p {
+  color: #444 !important;
+  /* 플레이 가이드 본문 */
+}
+
+/* 6. 미리보기 구역 (코드블록 같은 박스) 표백 */
+.theme-light .main-content>div>div[style*="position: absolute"]>div>div:nth-child(2)>div>div:last-child {
+  background-color: #ffffff !important;
+  border: 1px solid #c7c7cc !important;
+  color: #666 !important;
+}
+
+/* 7. 👉 이 루트로 시작 버튼 (오렌지 골드 톤다운) */
+.theme-light .main-content>div>div[style*="position: absolute"] button[style*="background: rgb(255, 230, 0)"] {
+  background-color: rgba(230, 126, 0, 0.1) !important;
+  color: #e6ad00 !important;
+  border: 1px solid #e6ad00 !important;
+}
+
+@media screen and (max-width: 768px) {
+
+  /* 1. 헤더: 비좁으니까 위아래로 쌓거나 버튼들 크기 줄이기 */
+  .app-header {
+    padding: 10px !important;
+    height: auto !important;
+  }
+
+  .header-title {
+    display: none;
+    /* 폰에서는 공간 차지하니까 텍스트 로고 걍 숨겨버림 ㅋㅋㅋ */
+  }
+
+  .nav-buttons button {
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* 2. 메인 레이아웃: 사이드바를 가로 스크롤로 상단에 올리기! (핵심) */
+  .main-body {
+    flex-direction: column !important;
+    /* 좌우 배치를 상하 배치로 꺾어버림 */
+  }
+
+  .sidebar {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 120px;
+    border-right: none !important;
+    border-bottom: 1px solid #3f3f4e !important;
+  }
+
+  .sidebar-header {
+    padding: 10px !important;
+    font-size: 1rem !important;
+  }
+
+  .session-list {
+    display: flex !important;
+    flex-direction: row !important;
+    /* 채팅방 목록을 가로로 쭉 나열 */
+    overflow-x: auto !important;
+    /* 옆으로 스와이프 가능하게! */
+    overflow-y: hidden !important;
+  }
+
+  .session-item {
+    flex: 0 0 auto;
+    border-bottom: none !important;
+    border-right: 1px solid #3f3f4e !important;
+    padding: 10px 15px !important;
+  }
+
+  /* 3. 채팅방 우측 설정창: 폰에서는 좁으니까 화면 덮는 오버레이(팝업)로! */
+  .chat-settings-sidebar {
+    position: absolute !important;
+    right: 0;
+    top: 0;
+    height: 100% !important;
+    z-index: 100;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* 4. 채팅 말풍선 크기 최적화 (폰에서는 꽉 차게 90%까지 늘림) */
+  .bubble {
+    max-width: 90% !important;
+  }
+
+  /* 5. 스튜디오 상단 탭: 줄바꿈 되게 해서 찌그러짐 방지 */
+  .studio-nav {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    padding: 10px !important;
+  }
+
+  .studio-nav-btn {
+    flex: 1 1 auto;
+    /* 남는 공간 알아서 나눠 먹게 세팅 */
+    padding: 10px !important;
+    font-size: 0.85rem !important;
+    text-align: center;
+  }
+
+  /* 6. 모달(프롤로그 팝업) 창 폰 화면 꽉 차게 조절 */
+  .main-content>div>div[style*="position: absolute"]>div {
+    width: 95% !important;
+    padding: 15px !important;
+    max-height: 90vh !important;
+  }
+}
+
+.bubble,
+.room-guide-banner,
+.tab-content {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
