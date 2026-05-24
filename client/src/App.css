@@ -1,3 +1,27 @@
+* {
+  box-sizing: border-box !important;
+}
+
+/* 🚨 앱 전체 스크롤바 디자인 잼스 감성으로 통일 */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  /* 모바일 가로 스크롤바 대비 */
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3f3f4e;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #ffe600;
+}
+
 /* 🚨 1. 리액트 최상위 부모들 꼼짝 못하게 100vh로 묶고 스크롤 아예 잘라버림 */
 html,
 body,
@@ -425,27 +449,50 @@ body,
     max-height: 120px;
     border-right: none !important;
     border-bottom: 1px solid #3f3f4e !important;
+    background-color: #1e1e24 !important;
   }
 
   .sidebar-header {
     padding: 10px !important;
     font-size: 1rem !important;
+    background-color: #2b2b36 !important;
+    /* 헤더 부분만 살짝 구분 */
   }
 
   .session-list {
     display: flex !important;
     flex-direction: row !important;
-    /* 채팅방 목록을 가로로 쭉 나열 */
     overflow-x: auto !important;
-    /* 옆으로 스와이프 가능하게! */
     overflow-y: hidden !important;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 15px !important;
+    gap: 10px !important;
   }
 
   .session-item {
-    flex: 0 0 auto;
-    border-bottom: none !important;
-    border-right: 1px solid #3f3f4e !important;
-    padding: 10px 15px !important;
+    flex: 0 0 auto !important;
+    width: 180px !important;
+    background-color: #2b2b36 !important;
+    border: 1px solid #3f3f4e !important;
+    border-radius: 10px !important;
+    padding: 12px 35px 12px 15px !important;
+    /* ❌ 버튼이랑 안 겹치게 우측 여백 팍팍! */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-light .sidebar {
+    background-color: #f4f4f5 !important;
+  }
+
+  .theme-light .sidebar-header {
+    background-color: #ffffff !important;
+  }
+
+  .theme-light .session-item {
+    background-color: #ffffff !important;
+    border-color: #d1d1d6 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   /* 3. 채팅방 우측 설정창: 폰에서는 좁으니까 화면 덮는 오버레이(팝업)로! */
@@ -491,4 +538,117 @@ body,
 .tab-content {
   word-break: break-word !important;
   overflow-wrap: break-word !important;
+}
+
+/* 🚨 스튜디오 & 채팅창 모바일에서 우측 잘리는 거 억제 */
+.main-content,
+.studio-container,
+.chat-container {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+.session-title,
+.session-info {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  width: 100%;
+}
+
+.session-item button:hover {
+  color: #ff4d4d !important;
+  transform: translateY(-50%) scale(1.2);
+  transition: all 0.2s;
+}
+
+.session-item.active {
+  background-color: rgba(255, 230, 0, 0.1) !important;
+  /* 살짝 투명한 노란색 틴트 */
+  border: 1px solid #ffe600 !important;
+  color: #ffe600 !important;
+}
+
+.session-item.active .session-title {
+  color: #ffe600 !important;
+}
+
+.session-item.active .session-info {
+  color: rgba(255, 230, 0, 0.6) !important;
+  /* 서브 텍스트는 살짝 연하게 */
+}
+
+/* (라이트 모드 활성화 방 오렌지 골드 버전) */
+.theme-light .session-item.active {
+  background-color: rgba(230, 126, 0, 0.1) !important;
+  border: 1px solid #e67e00 !important;
+  color: #e67e00 !important;
+}
+
+.theme-light .session-item.active .session-title {
+  color: #e67e00 !important;
+}
+
+.theme-light .session-item.active .session-info {
+  color: rgba(230, 126, 0, 0.6) !important;
+}
+
+/* 2. 글씨가 네모칸 밖으로 삐져나가는(탈주) 현상 완벽 차단 */
+.session-item {
+  overflow: hidden !important;
+}
+
+/* 3. 가이드 텍스트가 닫기 버튼 밀어내서 낙사시키는 거 방지! */
+.room-guide-banner>div {
+  position: relative !important;
+  padding-right: 60px !important;
+  /* 닫기 버튼이 들어갈 자리(우측 60px) 강제 확보 */
+}
+
+.room-guide-banner>div>div:first-child {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  /* 마크다운 텍스트가 우측으로 팽창하는 거 차단 */
+}
+
+/* 닫기 버튼 멱살 잡고 우측 상단에 절대 위치로 고정! */
+.room-guide-banner button {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.studio-container {
+  height: 100% !important;
+}
+
+/* 2. 폼 스크롤 구역 맨 밑에 넉넉한 여백 추가 (추가 버튼이 무조건 화면에 걸리게!) */
+.tab-content {
+  padding-bottom: 100px !important;
+}
+
+/* 3. 프롤로그 플레이 가이드 텍스트 상자 스크롤 활성화 */
+.prologue-card textarea {
+  max-height: 120px !important;
+  /* 텍스트 상자가 무한정 길어지는 거 방지 */
+  overflow-y: auto !important;
+}
+
+/* 4. 마크다운 미리보기 박스 (점선 테두리) 스크롤 활성화 */
+.prologue-card .form-group>div[style*="dashed"] {
+  max-height: 150px !important;
+  /* 너무 길어지면 여기서 컷하고 스크롤 생김 */
+  overflow-y: auto !important;
+  /* 스크롤바 디자인 적용 */
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f4e transparent;
+}
+
+/* 라이트 모드일 때 스크롤바 색깔 매칭 */
+.theme-light .prologue-card .form-group>div[style*="dashed"] {
+  scrollbar-color: #c7c7cc transparent;
 }
