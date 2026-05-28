@@ -582,12 +582,12 @@ body,
 /* (라이트 모드 활성화 방 오렌지 골드 버전) */
 .theme-light .session-item.active {
   background-color: rgba(230, 126, 0, 0.1) !important;
-  border: 1px solid #e67e00 !important;
-  color: #e67e00 !important;
+  border: 1px solid #e6ad00 !important;
+  color: #e6ad00 !important;
 }
 
 .theme-light .session-item.active .session-title {
-  color: #e67e00 !important;
+  color: #e6ad00 !important;
 }
 
 .theme-light .session-item.active .session-info {
@@ -651,4 +651,237 @@ body,
 /* 라이트 모드일 때 스크롤바 색깔 매칭 */
 .theme-light .prologue-card .form-group>div[style*="dashed"] {
   scrollbar-color: #c7c7cc transparent;
+}
+
+/* 1. 채팅방 상단 가이드 배너 (PC 기본 150px) */
+.guide-markdown-content {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  padding-right: 10px !important;
+  /* 스크롤바랑 글씨 안 겹치게 여백 */
+  overscroll-behavior: contain;
+  /* 가이드 스크롤 끝났을 때 전체 화면 스크롤되는 거 방지 */
+}
+
+.detail-modal-box img,
+.markdown-body img {
+  max-width: 100% !important;
+  /* 모달창 가로 크기 절대 못 넘게 컷! */
+  height: auto !important;
+  /* 비율 안 찌그러지게 컷! */
+  border-radius: 8px !important;
+  display: block;
+  margin: 15px auto !important;
+  /* 가운데 정렬 */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 2. 마크다운 내 긴 텍스트나 영어 링크가 화면 찢는 거 2차 방어 */
+.detail-modal-box,
+.markdown-body {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+.detail-modal-box h2 {
+  line-height: 1.5 !important;
+  padding-bottom: 5px !important;
+}
+
+/* 2. 라이트 모드: 모달창 본체 및 NO IMAGE 배경 하얗게! */
+.theme-light .detail-modal-box {
+  background-color: #ffffff !important;
+  border-color: #c7c7cc !important;
+}
+
+.theme-light .detail-modal-box>div:first-child {
+  background-color: #f4f4f5 !important;
+}
+
+.theme-light .detail-modal-box>div:first-child>div:not([style*="linear-gradient"]) {
+  color: #aaa !important;
+  /* NO IMAGE 텍스트 색상 */
+}
+
+/* 3. 라이트 모드: 상단 제목 배경 그라데이션 (검은색 -> 하얀색) & 글씨 반전 */
+.theme-light .detail-modal-box>div:first-child>div[style*="linear-gradient"] {
+  background: linear-gradient(to top, rgba(255, 255, 255, 1) 15%, transparent) !important;
+}
+
+.theme-light .detail-modal-box h2 {
+  color: #111 !important;
+  text-shadow: none !important;
+  /* 하얀 배경엔 그림자 촌스러우니 컷! */
+}
+
+/* 4. 라이트 모드: 우측 상단 닫기(❌) 버튼 */
+.theme-light .detail-modal-box>div:first-child>button {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  color: #333 !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 5. 라이트 모드: 한 줄 요약(노란색) 및 마크다운 본문 글씨 */
+.theme-light .detail-modal-box>div:nth-child(2)>div:first-child {
+  color: #e6ad00 !important;
+  /* 노란색 -> 고급진 오렌지 골드 */
+  border-bottom-color: #d1d1d6 !important;
+}
+
+.theme-light .detail-modal-box .markdown-body {
+  color: #333 !important;
+}
+
+/* 6. 라이트 모드: 하단 액션 바 (닫기 / 대화 시작 버튼 영역) */
+.theme-light .detail-modal-box>div:last-child {
+  background-color: #f4f4f5 !important;
+  border-top-color: #d1d1d6 !important;
+}
+
+.theme-light .detail-modal-box>div:last-child>button:first-child {
+  color: #555 !important;
+  border-color: #aaa !important;
+}
+
+/* 2. 하단 액션 바 (닫기/시작 버튼 구역도 찌그러짐 방지) */
+.detail-modal-box>div:last-child {
+  flex-shrink: 0 !important;
+}
+
+/* 3. 중간 본문 스크롤 구역 (남는 공간만 유연하게 다 쳐먹게 세팅) */
+.detail-modal-box>div:nth-child(2) {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+}
+
+.theme-light .main-content div[style*="height: 180px"] {
+  background-color: #f4f4f5 !important;
+}
+
+/* 2. 'NO IMAGE' 글씨 색상 예쁘게 톤다운 */
+.theme-light .main-content div[style*="height: 180px"] span {
+  color: #aaa !important;
+}
+
+div[style*="position: fixed"][style*="z-index: 9999"] {
+  height: 100% !important;
+  height: 100dvh !important;
+  /* 🚨 모바일 전용 동적 뷰포트(dvh) 적용! */
+}
+
+/* 📱 모바일 환경에서는 한도를 더 빡세게 줄여서 폰 화면 보호! */
+@media screen and (max-width: 768px) {
+  .guide-markdown-content {
+    max-height: 120px !important;
+    /* 폰에서는 더 짧게 컷! */
+  }
+
+  .main-content>div>div[style*="position: absolute"] p {
+    max-height: 100px !important;
+    /* 팝업창은 공간이 더 없으니까 더 빡세게 컷! */
+  }
+
+  .detail-modal-box {
+    width: 92% !important;
+    max-width: 95vw !important;
+    max-height: 80vh !important;
+    /* 폰 화면의 80% 이상 못 커지게 고정 */
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+    /* 내용물이 부모 찢고 나가는 거 원천 봉쇄 */
+  }
+
+  .detail-modal-box>div:first-child {
+    height: 160px !important;
+    min-height: 160px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 2. 폰 화면에서 상단 썸네일 대갈통 높이 줄이기 (공간 확보) */
+  .detail-modal-box>div:first-child {
+    height: 160px !important;
+    min-height: 160px !important;
+    /* 250px은 모바일에서 너무 크니까 160px로 다이어트 */
+  }
+
+  /* 3. 썸네일 안의 제목 글씨 크기 모바일 최적화 (안 삐져나가게) */
+  .detail-modal-box h2 {
+    font-size: 1.4rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .detail-modal-box>div:nth-child(2) {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    /* 스크롤 활성화 */
+    padding: 15px !important;
+    padding-bottom: 40px !important;
+    /* 하단 짤림 방지 여백 */
+
+    display: block !important;
+    /* 🚨 플렉스 압축기 해제! 글씨 자연스럽게 떨어짐 */
+    min-height: 0 !important;
+  }
+
+  /* 5. 마크다운 본문 텍스트들 절대 줄 안 겹치게 자간/행간 교통정리 */
+  .detail-modal-box .markdown-body p,
+  .detail-modal-box .markdown-body li {
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 10px !important;
+    word-break: break-all !important;
+  }
+
+  /* 6. 하단 버튼 영역 패딩 줄여서 본문 공간 더 확보하기 */
+  .detail-modal-box>div:last-child {
+    padding: 10px 15px !important;
+    flex-shrink: 0 !important;
+    /* 절대 안 찌그러지게 보호 */
+  }
+
+  .detail-modal-box>div:last-child button {
+    padding: 8px 16px !important;
+    font-size: 0.9rem !important;
+  }
+
+  detail-modal-box {
+    max-height: 80% !important;
+    /* 폰 화면의 80% 이상 절대 못 커지게 컷! */
+    min-height: 0 !important;
+    /* 🚨 핵심: 내용물이 부모 창 찢고 나가는 거 원천 봉쇄 */
+  }
+
+  /* 3. 스크롤 쭉 내렸을 때 바닥에 안 붙게 여유 공간 살짝 주기 */
+  .detail-modal-box>div:nth-child(2) {
+    padding-bottom: 40px !important;
+  }
+
+  html,
+  body,
+  #root,
+  .app-layout {
+    height: 100dvh !important;
+  }
+
+  /* 2. 헤더 빼고 남은 공간(본문) 높이 재설정 */
+  .main-body {
+    height: calc(100dvh - 60px) !important;
+    /* 모바일 헤더 높이가 다르면 60px 숫자 맞춰서 조절해라 */
+  }
+
+  /* 3. 🌟 로비 화면(HomeLobby) 하단 스크롤 여백 확보! */
+  /* 로비 화면의 패딩을 모바일 맞춤으로 줄이고, 밑바닥에 안 닿게 padding-bottom 팍팍 줌 */
+  .main-content>div[style*="overflow-y: auto"] {
+    padding: 15px !important;
+    padding-bottom: 80px !important;
+    /* 밑에 80px 여유 줘서 카드가 절대 안 짤리게 방어! */
+  }
+
+  /* 4. 캐릭터 카드 그리드 모바일 최적화 (너무 안 커지게) */
+  .main-content>div[style*="overflow-y: auto"]>div:nth-child(2) {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 15px !important;
+  }
 }
